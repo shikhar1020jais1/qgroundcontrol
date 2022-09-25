@@ -15,8 +15,6 @@
 #include "FirmwarePlugin.h"
 #include "UAS.h"
 #include "JsonHelper.h"
-#include "ComponentInformationManager.h"
-#include "CompInfoParam.h"
 
 #include <QEasingCurve>
 #include <QFile>
@@ -65,6 +63,7 @@ const QHash<int, QString> _mavlinkCompIdHash {
     { MAV_COMP_ID_GPS2,     "GPS2" }
 };
 
+const char* ParameterManager::_cachedMetaDataFilePrefix =   "ParameterFactMetaData";
 const char* ParameterManager::_jsonParametersKey =          "parameters";
 const char* ParameterManager::_jsonCompIdKey =              "compId";
 const char* ParameterManager::_jsonParamNameKey =           "name";
@@ -81,7 +80,9 @@ ParameterManager::ParameterManager(Vehicle* vehicle)
     , _waitingForDefaultComponent       (false)
     , _saveRequired                     (false)
     , _metaDataAddedToFacts             (false)
-    , _logReplay                        (!vehicle->vehicleLinkManager()->primaryLink().expired() && vehicle->vehicleLinkManager()->primaryLink().lock()->isLogReplay())
+    , _logReplay                        (vehicle->priorityLink() && vehicle->priorityLink()->isLogReplay())
+    , _parameterSetMajorVersion         (-1)
+    , _parameterMetaData                (nullptr)
     , _prevWaitingReadParamIndexCount   (0)
     , _prevWaitingReadParamNameCount    (0)
     , _prevWaitingWriteParamNameCount   (0)
@@ -90,6 +91,8 @@ ParameterManager::ParameterManager(Vehicle* vehicle)
     , _indexBatchQueueActive            (false)
     , _totalParamCount                  (0)
 {
+    _versionParam = vehicle->firmwarePlugin()->getVersionParam();
+
     if (_vehicle->isOfflineEditingVehicle()) {
         _loadOfflineEditingParams();
         return;
@@ -105,8 +108,27 @@ ParameterManager::ParameterManager(Vehicle* vehicle)
     _waitingParamTimeoutTimer.setInterval(3000);
     connect(&_waitingParamTimeoutTimer, &QTimer::timeout, this, &ParameterManager::_waitingParamTimeout);
 
+    connect(_vehicle->uas(), &UASInterface::parameterUpdate, this, &ParameterManager::_parameterUpdate);
+
     // Ensure the cache directory exists
     QFileInfo(QSettings().fileName()).dir().mkdir("ParamCache");
+
+    if (_vehicle->highLatencyLink()) {
+        // High latency links don't load parameters
+        _parametersReady = true;
+        _missingParameters = true;
+        _initialLoadComplete = true;
+        _waitingForDefaultComponent = false;
+        emit parametersReadyChanged(_parametersReady);
+        emit missingParametersChanged(_missingParameters);
+    } else if (!_logReplay){
+        refreshAllParameters();
+    }
+}
+
+ParameterManager::~ParameterManager()
+{
+    delete _parameterMetaData;
 }
 
 void ParameterManager::_updateProgressBar(void)
@@ -166,70 +188,26 @@ void ParameterManager::_updateProgressBar(void)
     }
 }
 
-
-void ParameterManager::mavlinkMessageReceived(mavlink_message_t message)
-{
-    if (message.msgid == MAVLINK_MSG_ID_PARAM_VALUE) {
-        mavlink_param_value_t param_value;
-        mavlink_msg_param_value_decode(&message, &param_value);
-
-        // This will null terminate the name string
-        QByteArray bytes(param_value.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
-        QString parameterName(bytes);
-
-        mavlink_param_union_t paramUnion;
-        paramUnion.param_float  = param_value.param_value;
-        paramUnion.type         = param_value.param_type;
-
-        QVariant parameterValue;
-
-        switch (paramUnion.type) {
-        case MAV_PARAM_TYPE_REAL32:
-            parameterValue = QVariant(paramUnion.param_float);
-            break;
-        case MAV_PARAM_TYPE_UINT8:
-            parameterValue = QVariant(paramUnion.param_uint8);
-            break;
-        case MAV_PARAM_TYPE_INT8:
-            parameterValue = QVariant(paramUnion.param_int8);
-            break;
-        case MAV_PARAM_TYPE_UINT16:
-            parameterValue = QVariant(paramUnion.param_uint16);
-            break;
-        case MAV_PARAM_TYPE_INT16:
-            parameterValue = QVariant(paramUnion.param_int16);
-            break;
-        case MAV_PARAM_TYPE_UINT32:
-            parameterValue = QVariant(paramUnion.param_uint32);
-            break;
-        case MAV_PARAM_TYPE_INT32:
-            parameterValue = QVariant(paramUnion.param_int32);
-            break;
-        default:
-            qCritical() << "ParameterManager::_handleParamValue - unsupported MAV_PARAM_TYPE" << paramUnion.type;
-            break;
-        }
-
-        _handleParamValue(message.compid, parameterName, param_value.param_count, param_value.param_index, static_cast<MAV_PARAM_TYPE>(param_value.param_type), parameterValue);
-    }
-}
-
 /// Called whenever a parameter is updated or first seen.
-void ParameterManager::_handleParamValue(int componentId, QString parameterName, int parameterCount, int parameterIndex, MAV_PARAM_TYPE mavParamType, QVariant parameterValue)
+void ParameterManager::_parameterUpdate(int vehicleId, int componentId, QString parameterName, int parameterCount, int parameterId, int mavType, QVariant value)
 {
+    // Is this for our uas?
+    if (vehicleId != _vehicle->id()) {
+        return;
+    }
 
     qCDebug(ParameterManagerVerbose1Log) << _logVehiclePrefix(componentId) <<
                                             "_parameterUpdate" <<
                                             "name:" << parameterName <<
                                             "count:" << parameterCount <<
-                                            "index:" << parameterIndex <<
-                                            "mavType:" << mavParamType <<
-                                            "value:" << parameterValue <<
+                                            "index:" << parameterId <<
+                                            "mavType:" << mavType <<
+                                            "value:" << value <<
                                             ")";
 
     // ArduPilot has this strange behavior of streaming parameters that we didn't ask for. This even happens before it responds to the
     // PARAM_REQUEST_LIST. We disregard any of this until the initial request is responded to.
-    if (parameterIndex == 65535 && parameterName != "_HASH_CHECK" && _initialRequestTimeoutTimer.isActive()) {
+    if (parameterId == 65535 && parameterName != "_HASH_CHECK" && _initialRequestTimeoutTimer.isActive()) {
         qCDebug(ParameterManagerVerbose1Log) << "Disregarding unrequested param prior to initial list response" << parameterName;
         return;
     }
@@ -257,7 +235,7 @@ void ParameterManager::_handleParamValue(int componentId, QString parameterName,
     if (_vehicle->px4Firmware() && parameterName == "_HASH_CHECK") {
         if (!_initialLoadComplete && !_logReplay) {
             /* we received a cache hash, potentially load from cache */
-            _tryCacheHashLoad(_vehicle->id(), componentId, parameterValue);
+            _tryCacheHashLoad(vehicleId, componentId, value);
         }
         return;
     }
@@ -265,13 +243,14 @@ void ParameterManager::_handleParamValue(int componentId, QString parameterName,
     // Used to debug cache crc misses (turn on ParameterManagerDebugCacheFailureLog)
     if (!_initialLoadComplete && !_logReplay && _debugCacheCRC.contains(componentId) && _debugCacheCRC[componentId]) {
         if (_debugCacheMap[componentId].contains(parameterName)) {
-            const ParamTypeVal& cacheParamTypeVal   = _debugCacheMap[componentId][parameterName];
-            size_t              dataSize            = FactMetaData::typeToSize(static_cast<FactMetaData::ValueType_t>(cacheParamTypeVal.first));
-            const void*         cacheData           = cacheParamTypeVal.second.constData();
-            const void*         vehicleData         = parameterValue.constData();
+            const ParamTypeVal& cacheParamTypeVal = _debugCacheMap[componentId][parameterName];
+            size_t dataSize = FactMetaData::typeToSize(static_cast<FactMetaData::ValueType_t>(cacheParamTypeVal.first));
+            const void *cacheData = cacheParamTypeVal.second.constData();
+
+            const void *vehicleData = value.constData();
 
             if (memcmp(cacheData, vehicleData, dataSize)) {
-                qDebug() << "Cache/Vehicle values differ for name:cache:actual" << parameterName << parameterValue << cacheParamTypeVal.second;
+                qDebug() << "Cache/Vehicle values differ for name:cache:actual" << parameterName << value << cacheParamTypeVal.second;
             }
             _debugCacheParamSeen[componentId][parameterName] = true;
         } else {
@@ -282,13 +261,15 @@ void ParameterManager::_handleParamValue(int componentId, QString parameterName,
     _initialRequestTimeoutTimer.stop();
     _waitingParamTimeoutTimer.stop();
 
+    _dataMutex.lock();
+
     // Update our total parameter counts
     if (!_paramCountMap.contains(componentId)) {
         _paramCountMap[componentId] = parameterCount;
         _totalParamCount += parameterCount;
     }
 
-    // If we've never seen this component id before, setup the index wait lists.
+    // If we've never seen this component id before, setup the wait lists.
     if (!_waitingReadParamIndexMap.contains(componentId)) {
         // Add all indices to the wait list, parameter index is 0-based
         for (int waitingIndex=0; waitingIndex<parameterCount; waitingIndex++) {
@@ -303,16 +284,22 @@ void ParameterManager::_handleParamValue(int componentId, QString parameterName,
         qCDebug(ParameterManagerLog) << _logVehiclePrefix(componentId) << "Seeing component for first time - paramcount:" << parameterCount;
     }
 
-    if (!_waitingReadParamIndexMap[componentId].contains(parameterIndex) &&
+    bool componentParamsComplete = false;
+    if (_waitingReadParamIndexMap[componentId].count() == 1) {
+        // We need to know when we get the last param from a component in order to complete setup
+        componentParamsComplete = true;
+    }
+
+    if (!_waitingReadParamIndexMap[componentId].contains(parameterId) &&
             !_waitingReadParamNameMap[componentId].contains(parameterName) &&
             !_waitingWriteParamNameMap[componentId].contains(parameterName)) {
         qCDebug(ParameterManagerVerbose1Log) << _logVehiclePrefix(componentId) << "Unrequested param update" << parameterName;
     }
 
     // Remove this parameter from the waiting lists
-    if (_waitingReadParamIndexMap[componentId].contains(parameterIndex)) {
-        _waitingReadParamIndexMap[componentId].remove(parameterIndex);
-        _indexBatchQueue.removeOne(parameterIndex);
+    if (_waitingReadParamIndexMap[componentId].contains(parameterId)) {
+        _waitingReadParamIndexMap[componentId].remove(parameterId);
+        _indexBatchQueue.removeOne(parameterId);
         _fillIndexBatchQueue(false /* waitingParamTimeout */);
     }
     _waitingReadParamNameMap[componentId].remove(parameterName);
@@ -361,7 +348,7 @@ void ParameterManager::_handleParamValue(int componentId, QString parameterName,
         _waitingParamTimeoutTimer.start();
         qCDebug(ParameterManagerVerbose1Log) << _logVehiclePrefix(-1) << "Restarting _waitingParamTimeoutTimer: totalWaitingParamCount:" << totalWaitingParamCount;
     } else {
-        if (!_mapCompId2FactMap.contains(_vehicle->defaultComponentId())) {
+        if (!_mapParameterName2Variant.contains(_vehicle->defaultComponentId())) {
             // Still waiting for parameters from default component
             qCDebug(ParameterManagerLog) << _logVehiclePrefix(-1) << "Restarting _waitingParamTimeoutTimer (still waiting for default component params)";
             _waitingParamTimeoutTimer.start();
@@ -369,28 +356,86 @@ void ParameterManager::_handleParamValue(int componentId, QString parameterName,
             qCDebug(ParameterManagerVerbose1Log) << _logVehiclePrefix(-1) << "Not restarting _waitingParamTimeoutTimer (all requests satisfied)";
         }
     }
-
+\
     _updateProgressBar();
 
-    Fact* fact = nullptr;
-    if (_mapCompId2FactMap.contains(componentId) && _mapCompId2FactMap[componentId].contains(parameterName)) {
-        fact = _mapCompId2FactMap[componentId][parameterName];
-    } else {
-        qCDebug(ParameterManagerVerbose1Log) << _logVehiclePrefix(componentId) << "Adding new fact" << parameterName;
-
-        fact = new Fact(componentId, parameterName, mavTypeToFactType(mavParamType), this);
-        FactMetaData* factMetaData = _vehicle->compInfoManager()->compInfoParam(componentId)->factMetaDataForName(parameterName, fact->type());
-        fact->setMetaData(factMetaData);
-
-        _mapCompId2FactMap[componentId][parameterName] = fact;
-
-        // We need to know when the fact value changes so we can update the vehicle
-        connect(fact, &Fact::_containerRawValueChanged, this, &ParameterManager::_factRawValueUpdated);
-
-        emit factAdded(componentId, fact);
+    // Get parameter set version
+    if (!_versionParam.isEmpty() && _versionParam == parameterName) {
+        _parameterSetMajorVersion = value.toInt();
     }
 
-    fact->_containerSetRawValue(parameterValue);
+    if (!_mapParameterName2Variant.contains(componentId) || !_mapParameterName2Variant[componentId].contains(parameterName)) {
+        qCDebug(ParameterManagerVerbose1Log) << _logVehiclePrefix(componentId) << "Adding new fact" << parameterName;
+
+        FactMetaData::ValueType_t factType;
+        switch (mavType) {
+        case MAV_PARAM_TYPE_UINT8:
+            factType = FactMetaData::valueTypeUint8;
+            break;
+        case MAV_PARAM_TYPE_INT8:
+            factType = FactMetaData::valueTypeInt8;
+            break;
+        case MAV_PARAM_TYPE_UINT16:
+            factType = FactMetaData::valueTypeUint16;
+            break;
+        case MAV_PARAM_TYPE_INT16:
+            factType = FactMetaData::valueTypeInt16;
+            break;
+        case MAV_PARAM_TYPE_UINT32:
+            factType = FactMetaData::valueTypeUint32;
+            break;
+        case MAV_PARAM_TYPE_INT32:
+            factType = FactMetaData::valueTypeInt32;
+            break;
+        case MAV_PARAM_TYPE_UINT64:
+            factType = FactMetaData::valueTypeUint64;
+            break;
+        case MAV_PARAM_TYPE_INT64:
+            factType = FactMetaData::valueTypeInt64;
+            break;
+        case MAV_PARAM_TYPE_REAL32:
+            factType = FactMetaData::valueTypeFloat;
+            break;
+        case MAV_PARAM_TYPE_REAL64:
+            factType = FactMetaData::valueTypeDouble;
+            break;
+        default:
+            factType = FactMetaData::valueTypeInt32;
+            qCritical() << "Unsupported fact type" << mavType;
+            break;
+        }
+
+        Fact* fact = new Fact(componentId, parameterName, factType, this);
+
+        _mapParameterName2Variant[componentId][parameterName] = QVariant::fromValue(fact);
+
+        // We need to know when the fact changes from QML so that we can send the new value to the parameter manager
+        connect(fact, &Fact::_containerRawValueChanged, this, &ParameterManager::_valueUpdated);
+    }
+
+    _dataMutex.unlock();
+
+    Fact* fact = nullptr;
+    if (_mapParameterName2Variant[componentId].contains(parameterName)) {
+        fact = _mapParameterName2Variant[componentId][parameterName].value<Fact*>();
+    }
+    if (fact) {
+        fact->_containerSetRawValue(value);
+    } else {
+        qWarning() << "Internal error";
+    }
+
+    if (componentParamsComplete) {
+        if (componentId == _vehicle->defaultComponentId()) {
+            // Add meta data to default component. We need to do this before we setup the group map since group
+            // map requires meta data.
+            _addMetaDataToDefaultComponent();
+        }
+        // When we are getting the very last component param index, reset the group maps to update for the
+        // new params. By handling this here, we can pick up components which finish up later than the default
+        // component param set.
+        _setupComponentCategoryMap(componentId);
+    }
 
     // Update param cache. The param cache is only used on PX4 Firmware since ArduPilot and Solo have volatile params
     // which invalidate the cache. The Solo also streams param updates in flight for things like gimbal values
@@ -398,7 +443,7 @@ void ParameterManager::_handleParamValue(int componentId, QString parameterName,
     if (!_logReplay && _vehicle->px4Firmware()) {
         if (_prevWaitingReadParamIndexCount + _prevWaitingReadParamNameCount != 0 && readWaitingParamCount == 0) {
             // All reads just finished, update the cache
-            _writeLocalParamCache(_vehicle->id(), componentId);
+            _writeLocalParamCache(vehicleId, componentId);
         }
     }
 
@@ -411,9 +456,22 @@ void ParameterManager::_handleParamValue(int componentId, QString parameterName,
     qCDebug(ParameterManagerVerbose1Log) << _logVehiclePrefix(componentId) << "_parameterUpdate complete";
 }
 
-/// Writes the parameter update to mavlink, sets up for write wait
-void ParameterManager::_factRawValueUpdateWorker(int componentId, const QString& name, FactMetaData::ValueType_t valueType, const QVariant& rawValue)
+/// Connected to Fact::valueUpdated
+///
+/// Writes the parameter to mavlink, sets up for write wait
+void ParameterManager::_valueUpdated(const QVariant& value)
 {
+    Fact* fact = qobject_cast<Fact*>(sender());
+    if (!fact) {
+        qWarning() << "Internal error";
+        return;
+    }
+
+    int componentId = fact->componentId();
+    QString name = fact->name();
+
+    _dataMutex.lock();
+
     if (_waitingWriteParamNameMap.contains(componentId)) {
         if (_waitingWriteParamNameMap[componentId].contains(name)) {
             _waitingWriteParamNameMap[componentId].remove(name);
@@ -425,41 +483,22 @@ void ParameterManager::_factRawValueUpdateWorker(int componentId, const QString&
         _waitingParamTimeoutTimer.start();
         _saveRequired = true;
     } else {
-        qWarning() << "Internal error ParameterManager::_factValueUpdateWorker: component id not found" << componentId;
-    }
-
-    _sendParamSetToVehicle(componentId, name, valueType, rawValue);
-    qCDebug(ParameterManagerLog) << _logVehiclePrefix(componentId) << "Update parameter (_waitingParamTimeoutTimer started) - compId:name:rawValue" << componentId << name << rawValue;
-}
-
-void ParameterManager::_factRawValueUpdated(const QVariant& rawValue)
-{
-    Fact* fact = qobject_cast<Fact*>(sender());
-    if (!fact) {
         qWarning() << "Internal error";
-        return;
     }
 
-    _factRawValueUpdateWorker(fact->componentId(), fact->name(), fact->type(), rawValue);
+    _dataMutex.unlock();
+
+    _writeParameterRaw(componentId, fact->name(), value);
+    qCDebug(ParameterManagerLog) << _logVehiclePrefix(componentId) << "Set parameter - name:" << name << value << "(_waitingParamTimeoutTimer started)";
 }
 
 void ParameterManager::refreshAllParameters(uint8_t componentId)
 {
-    WeakLinkInterfacePtr weakLink = _vehicle->vehicleLinkManager()->primaryLink();
-
-    if (weakLink.expired()) {
+    if (_logReplay) {
         return;
     }
 
-    if (weakLink.lock()->linkConfiguration()->isHighLatency() || _logReplay) {
-        // These links don't load params
-        _parametersReady = true;
-        _missingParameters = true;
-        _initialLoadComplete = true;
-        _waitingForDefaultComponent = false;
-        emit parametersReadyChanged(_parametersReady);
-        emit missingParametersChanged(_missingParameters);
-    }
+    _dataMutex.lock();
 
     if (!_initialLoadComplete) {
         _initialRequestTimeoutTimer.start();
@@ -476,17 +515,18 @@ void ParameterManager::refreshAllParameters(uint8_t componentId)
         }
     }
 
-    MAVLinkProtocol*        mavlink = qgcApp()->toolbox()->mavlinkProtocol();
-    mavlink_message_t       msg;
-    SharedLinkInterfacePtr  sharedLink = weakLink.lock();
+    _dataMutex.unlock();
 
+    MAVLinkProtocol* mavlink = qgcApp()->toolbox()->mavlinkProtocol();
+
+    mavlink_message_t msg;
     mavlink_msg_param_request_list_pack_chan(mavlink->getSystemId(),
                                              mavlink->getComponentId(),
-                                             sharedLink->mavlinkChannel(),
+                                             _vehicle->priorityLink()->mavlinkChannel(),
                                              &msg,
                                              _vehicle->id(),
                                              componentId);
-    _vehicle->sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
+    _vehicle->sendMessageOnLink(_vehicle->priorityLink(), msg);
 
     QString what = (componentId == MAV_COMP_ID_ALL) ? "MAV_COMP_ID_ALL" : QString::number(componentId);
     qCDebug(ParameterManagerLog) << _logVehiclePrefix(-1) << "Request to refresh all parameters for component ID:" << what;
@@ -510,6 +550,8 @@ void ParameterManager::refreshParameter(int componentId, const QString& paramNam
     componentId = _actualComponentId(componentId);
     qCDebug(ParameterManagerLog) << _logVehiclePrefix(componentId) << "refreshParameter - name:" << paramName << ")";
 
+    _dataMutex.lock();
+
     if (_waitingReadParamNameMap.contains(componentId)) {
         QString mappedParamName = _remapParamNameToVersion(paramName);
 
@@ -526,6 +568,8 @@ void ParameterManager::refreshParameter(int componentId, const QString& paramNam
         qWarning() << "Internal error";
     }
 
+    _dataMutex.unlock();
+
     _readParameterRaw(componentId, paramName, -1);
 }
 
@@ -534,7 +578,7 @@ void ParameterManager::refreshParametersPrefix(int componentId, const QString& n
     componentId = _actualComponentId(componentId);
     qCDebug(ParameterManagerLog) << _logVehiclePrefix(componentId) << "refreshParametersPrefix - name:" << namePrefix << ")";
 
-    for (const QString &paramName: _mapCompId2FactMap[componentId].keys()) {
+    for(const QString &paramName: _mapParameterName2Variant[componentId].keys()) {
         if (paramName.startsWith(namePrefix)) {
             refreshParameter(componentId, paramName);
         }
@@ -546,8 +590,8 @@ bool ParameterManager::parameterExists(int componentId, const QString& paramName
     bool ret = false;
 
     componentId = _actualComponentId(componentId);
-    if (_mapCompId2FactMap.contains(componentId)) {
-        ret = _mapCompId2FactMap[componentId].contains(_remapParamNameToVersion(paramName));
+    if (_mapParameterName2Variant.contains(componentId)) {
+        ret = _mapParameterName2Variant[componentId].contains(_remapParamNameToVersion(paramName));
     }
 
     return ret;
@@ -558,23 +602,85 @@ Fact* ParameterManager::getParameter(int componentId, const QString& paramName)
     componentId = _actualComponentId(componentId);
 
     QString mappedParamName = _remapParamNameToVersion(paramName);
-    if (!_mapCompId2FactMap.contains(componentId) || !_mapCompId2FactMap[componentId].contains(mappedParamName)) {
+    if (!_mapParameterName2Variant.contains(componentId) || !_mapParameterName2Variant[componentId].contains(mappedParamName)) {
         qgcApp()->reportMissingParameter(componentId, mappedParamName);
         return &_defaultFact;
     }
 
-    return _mapCompId2FactMap[componentId][mappedParamName];
+    return _mapParameterName2Variant[componentId][mappedParamName].value<Fact*>();
 }
 
 QStringList ParameterManager::parameterNames(int componentId)
 {
     QStringList names;
 
-    for(const QString &paramName: _mapCompId2FactMap[_actualComponentId(componentId)].keys()) {
+    for(const QString &paramName: _mapParameterName2Variant[_actualComponentId(componentId)].keys()) {
         names << paramName;
     }
 
     return names;
+}
+
+void ParameterManager::_setupComponentCategoryMap(int componentId)
+{
+    if (componentId == _vehicle->defaultComponentId()) {
+        _setupDefaultComponentCategoryMap();
+        return;
+    }
+
+    ComponentCategoryMapType& componentCategoryMap = _componentCategoryMaps[componentId];
+
+    QString category = getComponentCategory(componentId);
+
+    // Must be able to handle being called multiple times
+    componentCategoryMap.clear();
+
+    // Fill parameters into the group determined by param name
+    for (const QString &paramName: _mapParameterName2Variant[componentId].keys()) {
+        int i = paramName.indexOf("_");
+        if (i > 0) {
+            componentCategoryMap[category][paramName.left(i)] += paramName;
+        } else {
+            componentCategoryMap[category][tr("Misc")] += paramName;
+        }
+    }
+
+    // Memorize category for component ID
+    if (!_componentCategoryHash.contains(category)) {
+        _componentCategoryHash.insert(category, componentId);
+    }
+}
+
+void ParameterManager::_setupDefaultComponentCategoryMap(void)
+{
+    ComponentCategoryMapType& defaultComponentCategoryMap = _componentCategoryMaps[_vehicle->defaultComponentId()];
+
+    // Must be able to handle being called multiple times
+    defaultComponentCategoryMap.clear();
+
+    for (const QString &paramName: _mapParameterName2Variant[_vehicle->defaultComponentId()].keys()) {
+        Fact* fact = _mapParameterName2Variant[_vehicle->defaultComponentId()][paramName].value<Fact*>();
+        defaultComponentCategoryMap[fact->category()][fact->group()] += paramName;
+    }
+}
+
+QString ParameterManager::getComponentCategory(int componentId)
+{
+    if (_mavlinkCompIdHash.contains(componentId)) {
+        return tr("Component %1  (%2)").arg(_mavlinkCompIdHash.value(componentId)).arg(componentId);
+    }
+    QString componentCategoryPrefix = tr("Component ");
+    return QString("%1%2").arg(componentCategoryPrefix).arg(componentId);
+}
+
+const QMap<QString, QMap<QString, QStringList> >& ParameterManager::getComponentCategoryMap(int componentId)
+{
+    return _componentCategoryMaps[componentId];
+}
+
+int  ParameterManager::getComponentId(const QString& category)
+{
+    return (_componentCategoryHash.contains(category)) ? _componentCategoryHash.value(category) : _vehicle->defaultComponentId();
 }
 
 /// Requests missing index based parameters from the vehicle.
@@ -648,10 +754,10 @@ void ParameterManager::_waitingParamTimeout(void)
     // First check for any missing parameters from the initial index based load
     paramsRequested = _fillIndexBatchQueue(true /* waitingParamTimeout */);
 
-    if (!paramsRequested && !_waitingForDefaultComponent && !_mapCompId2FactMap.contains(_vehicle->defaultComponentId())) {
+    if (!paramsRequested && !_waitingForDefaultComponent && !_mapParameterName2Variant.contains(_vehicle->defaultComponentId())) {
         // Initial load is complete but we still don't have any default component params. Wait one more cycle to see if the
         // any show up.
-        qCDebug(ParameterManagerLog) << _logVehiclePrefix(-1) << "Restarting _waitingParamTimeoutTimer - still don't have default component params" << _vehicle->defaultComponentId();
+        qCDebug(ParameterManagerLog) << _logVehiclePrefix(-1) << "Restarting _waitingParamTimeoutTimer - still don't have default component params" << _vehicle->defaultComponentId() << _mapParameterName2Variant.keys();
         _waitingParamTimeoutTimer.start();
         _waitingForDefaultComponent = true;
         return;
@@ -666,8 +772,7 @@ void ParameterManager::_waitingParamTimeout(void)
                 paramsRequested = true;
                 _waitingWriteParamNameMap[componentId][paramName]++;   // Bump retry count
                 if (_waitingWriteParamNameMap[componentId][paramName] <= _maxReadWriteRetry) {
-                    Fact* fact = getParameter(componentId, paramName);
-                    _sendParamSetToVehicle(componentId, paramName, fact->type(), fact->rawValue());
+                    _writeParameterRaw(componentId, paramName, getParameter(componentId, paramName)->rawValue());
                     qCDebug(ParameterManagerLog) << _logVehiclePrefix(componentId) << "Write resend for (paramName:" << paramName << "retryCount:" << _waitingWriteParamNameMap[componentId][paramName] << ")";
                     if (++batchCount > maxBatchSize) {
                         goto Out;
@@ -677,7 +782,7 @@ void ParameterManager::_waitingParamTimeout(void)
                     _waitingWriteParamNameMap[componentId].remove(paramName);
                     QString errorMsg = tr("Parameter write failed: veh:%1 comp:%2 param:%3").arg(_vehicle->id()).arg(componentId).arg(paramName);
                     qCDebug(ParameterManagerLog) << errorMsg;
-                    qgcApp()->showAppMessage(errorMsg);
+                    qgcApp()->showMessage(errorMsg);
                 }
             }
         }
@@ -699,7 +804,7 @@ void ParameterManager::_waitingParamTimeout(void)
                     _waitingReadParamNameMap[componentId].remove(paramName);
                     QString errorMsg = tr("Parameter read failed: veh:%1 comp:%2 param:%3").arg(_vehicle->id()).arg(componentId).arg(paramName);
                     qCDebug(ParameterManagerLog) << errorMsg;
-                    qgcApp()->showAppMessage(errorMsg);
+                    qgcApp()->showMessage(errorMsg);
                 }
             }
         }
@@ -714,95 +819,86 @@ Out:
 
 void ParameterManager::_readParameterRaw(int componentId, const QString& paramName, int paramIndex)
 {
-    WeakLinkInterfacePtr weakLink = _vehicle->vehicleLinkManager()->primaryLink();
-    if (!weakLink.expired()) {
-        mavlink_message_t       msg;
-        char                    fixedParamName[MAVLINK_MSG_PARAM_REQUEST_READ_FIELD_PARAM_ID_LEN];
-        SharedLinkInterfacePtr  sharedLink = weakLink.lock();
+    mavlink_message_t msg;
+    char fixedParamName[MAVLINK_MSG_PARAM_REQUEST_READ_FIELD_PARAM_ID_LEN];
 
-
-        strncpy(fixedParamName, paramName.toStdString().c_str(), sizeof(fixedParamName));
-        mavlink_msg_param_request_read_pack_chan(_mavlink->getSystemId(),   // QGC system id
-                                                 _mavlink->getComponentId(),     // QGC component id
-                                                 sharedLink->mavlinkChannel(),
-                                                 &msg,                           // Pack into this mavlink_message_t
-                                                 _vehicle->id(),                 // Target system id
-                                                 componentId,                    // Target component id
-                                                 fixedParamName,                 // Named parameter being requested
-                                                 paramIndex);                    // Parameter index being requested, -1 for named
-        _vehicle->sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
-    }
+    strncpy(fixedParamName, paramName.toStdString().c_str(), sizeof(fixedParamName));
+    mavlink_msg_param_request_read_pack_chan(_mavlink->getSystemId(),   // QGC system id
+                                             _mavlink->getComponentId(),     // QGC component id
+                                             _vehicle->priorityLink()->mavlinkChannel(),
+                                             &msg,                           // Pack into this mavlink_message_t
+                                             _vehicle->id(),                 // Target system id
+                                             componentId,                    // Target component id
+                                             fixedParamName,                 // Named parameter being requested
+                                             paramIndex);                    // Parameter index being requested, -1 for named
+    _vehicle->sendMessageOnLink(_vehicle->priorityLink(), msg);
 }
 
-void ParameterManager::_sendParamSetToVehicle(int componentId, const QString& paramName, FactMetaData::ValueType_t valueType, const QVariant& value)
+void ParameterManager::_writeParameterRaw(int componentId, const QString& paramName, const QVariant& value)
 {
-    WeakLinkInterfacePtr weakLink = _vehicle->vehicleLinkManager()->primaryLink();
+    mavlink_param_set_t     p;
+    mavlink_param_union_t   union_value;
 
-    if (!weakLink.expired()) {
-        mavlink_param_set_t     p;
-        mavlink_param_union_t   union_value;
-        SharedLinkInterfacePtr  sharedLink = weakLink.lock();
+    memset(&p, 0, sizeof(p));
 
-        memset(&p, 0, sizeof(p));
+    FactMetaData::ValueType_t factType = getParameter(componentId, paramName)->type();
+    p.param_type = _factTypeToMavType(factType);
 
-        p.param_type = factTypeToMavType(valueType);
+    switch (factType) {
+    case FactMetaData::valueTypeUint8:
+        union_value.param_uint8 = (uint8_t)value.toUInt();
+        break;
 
-        switch (valueType) {
-        case FactMetaData::valueTypeUint8:
-            union_value.param_uint8 = (uint8_t)value.toUInt();
-            break;
+    case FactMetaData::valueTypeInt8:
+        union_value.param_int8 = (int8_t)value.toInt();
+        break;
 
-        case FactMetaData::valueTypeInt8:
-            union_value.param_int8 = (int8_t)value.toInt();
-            break;
+    case FactMetaData::valueTypeUint16:
+        union_value.param_uint16 = (uint16_t)value.toUInt();
+        break;
 
-        case FactMetaData::valueTypeUint16:
-            union_value.param_uint16 = (uint16_t)value.toUInt();
-            break;
+    case FactMetaData::valueTypeInt16:
+        union_value.param_int16 = (int16_t)value.toInt();
+        break;
 
-        case FactMetaData::valueTypeInt16:
-            union_value.param_int16 = (int16_t)value.toInt();
-            break;
+    case FactMetaData::valueTypeUint32:
+        union_value.param_uint32 = (uint32_t)value.toUInt();
+        break;
 
-        case FactMetaData::valueTypeUint32:
-            union_value.param_uint32 = (uint32_t)value.toUInt();
-            break;
+    case FactMetaData::valueTypeFloat:
+        union_value.param_float = value.toFloat();
+        break;
 
-        case FactMetaData::valueTypeFloat:
-            union_value.param_float = value.toFloat();
-            break;
+    default:
+        qCritical() << "Unsupported fact type" << factType;
+        // fall through
 
-        default:
-            qCritical() << "Unsupported fact falue type" << valueType;
-            // fall through
-
-        case FactMetaData::valueTypeInt32:
-            union_value.param_int32 = (int32_t)value.toInt();
-            break;
-        }
-
-        p.param_value = union_value.param_float;
-        p.target_system = (uint8_t)_vehicle->id();
-        p.target_component = (uint8_t)componentId;
-
-        strncpy(p.param_id, paramName.toStdString().c_str(), sizeof(p.param_id));
-
-        mavlink_message_t msg;
-        mavlink_msg_param_set_encode_chan(_mavlink->getSystemId(),
-                                          _mavlink->getComponentId(),
-                                          sharedLink->mavlinkChannel(),
-                                          &msg,
-                                          &p);
-        _vehicle->sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
+    case FactMetaData::valueTypeInt32:
+        union_value.param_int32 = (int32_t)value.toInt();
+        break;
     }
+
+    p.param_value = union_value.param_float;
+    p.target_system = (uint8_t)_vehicle->id();
+    p.target_component = (uint8_t)componentId;
+
+    strncpy(p.param_id, paramName.toStdString().c_str(), sizeof(p.param_id));
+
+    mavlink_message_t msg;
+    mavlink_msg_param_set_encode_chan(_mavlink->getSystemId(),
+                                      _mavlink->getComponentId(),
+                                      _vehicle->priorityLink()->mavlinkChannel(),
+                                      &msg,
+                                      &p);
+    _vehicle->sendMessageOnLink(_vehicle->priorityLink(), msg);
 }
 
 void ParameterManager::_writeLocalParamCache(int vehicleId, int componentId)
 {
     CacheMapName2ParamTypeVal cacheMap;
 
-    for (const QString& paramName: _mapCompId2FactMap[componentId].keys()) {
-        const Fact *fact = _mapCompId2FactMap[componentId][paramName];
+    for(const QString& paramName: _mapParameterName2Variant[componentId].keys()) {
+        const Fact *fact = _mapParameterName2Variant[componentId][paramName].value<Fact*>();
         cacheMap[paramName] = ParamTypeVal(fact->type(), fact->rawValue());
     }
 
@@ -842,16 +938,29 @@ void ParameterManager::_tryCacheHashLoad(int vehicleId, int componentId, QVarian
     QDataStream ds(&cacheFile);
     ds >> cacheMap;
 
+    // Load parameter meta data for the version number stored in cache.
+    // We need meta data so we have access to the volatile bit
+    if (cacheMap.contains(_versionParam)) {
+        _parameterSetMajorVersion = cacheMap[_versionParam].second.toInt();
+    }
+    _loadMetaData();
+
     /* compute the crc of the local cache to check against the remote */
 
+    FirmwarePlugin* firmwarePlugin = _vehicle->firmwarePlugin();
     for (const QString& name: cacheMap.keys()) {
-        const ParamTypeVal&             paramTypeVal    = cacheMap[name];
-        const FactMetaData::ValueType_t fact_type       = static_cast<FactMetaData::ValueType_t>(paramTypeVal.first);
+        bool volatileValue = false;
 
-        if (_vehicle->compInfoManager()->compInfoParam(MAV_COMP_ID_AUTOPILOT1)->factMetaDataForName(name, fact_type)->volatileValue()) {
+        FactMetaData* metaData = firmwarePlugin->getMetaDataForFact(_parameterMetaData, name, _vehicle->vehicleType());
+        if (metaData) {
+            volatileValue = metaData->volatileValue();
+        }
+
+        if (volatileValue) {
             // Does not take part in CRC
             qCDebug(ParameterManagerLog) << "Volatile parameter" << name;
         } else {
+            const ParamTypeVal& paramTypeVal = cacheMap[name];
             const void *vdat = paramTypeVal.second.constData();
             const FactMetaData::ValueType_t fact_type = static_cast<FactMetaData::ValueType_t>(paramTypeVal.first);
             crc32_value = QGC::crc32((const uint8_t *)qPrintable(name), name.length(),  crc32_value);
@@ -868,33 +977,27 @@ void ParameterManager::_tryCacheHashLoad(int vehicleId, int componentId, QVarian
         for (const QString& name: cacheMap.keys()) {
             const ParamTypeVal& paramTypeVal = cacheMap[name];
             const FactMetaData::ValueType_t fact_type = static_cast<FactMetaData::ValueType_t>(paramTypeVal.first);
-            const MAV_PARAM_TYPE mavParamType = factTypeToMavType(fact_type);
-            _handleParamValue(componentId, name, count, index++, mavParamType, paramTypeVal.second);
+            const int mavType = _factTypeToMavType(fact_type);
+            _parameterUpdate(vehicleId, componentId, name, count, index++, mavType, paramTypeVal.second);
         }
 
-        WeakLinkInterfacePtr weakLink = _vehicle->vehicleLinkManager()->primaryLink();
-
-        if (!weakLink.expired()) {
-            mavlink_param_set_t     p;
-            mavlink_param_union_t   union_value;
-            SharedLinkInterfacePtr  sharedLink = weakLink.lock();
-
-            // Return the hash value to notify we don't want any more updates
-            memset(&p, 0, sizeof(p));
-            p.param_type = MAV_PARAM_TYPE_UINT32;
-            strncpy(p.param_id, "_HASH_CHECK", sizeof(p.param_id));
-            union_value.param_uint32 = crc32_value;
-            p.param_value = union_value.param_float;
-            p.target_system = (uint8_t)_vehicle->id();
-            p.target_component = (uint8_t)componentId;
-            mavlink_message_t msg;
-            mavlink_msg_param_set_encode_chan(_mavlink->getSystemId(),
-                                              _mavlink->getComponentId(),
-                                              sharedLink->mavlinkChannel(),
-                                              &msg,
-                                              &p);
-            _vehicle->sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
-        }
+        // Return the hash value to notify we don't want any more updates
+        mavlink_param_set_t     p;
+        mavlink_param_union_t   union_value;
+        memset(&p, 0, sizeof(p));
+        p.param_type = MAV_PARAM_TYPE_UINT32;
+        strncpy(p.param_id, "_HASH_CHECK", sizeof(p.param_id));
+        union_value.param_uint32 = crc32_value;
+        p.param_value = union_value.param_float;
+        p.target_system = (uint8_t)_vehicle->id();
+        p.target_component = (uint8_t)componentId;
+        mavlink_message_t msg;
+        mavlink_msg_param_set_encode_chan(_mavlink->getSystemId(),
+                                          _mavlink->getComponentId(),
+                                          _vehicle->priorityLink()->mavlinkChannel(),
+                                          &msg,
+                                          &p);
+        _vehicle->sendMessageOnLink(_vehicle->priorityLink(), msg);
 
         // Give the user some feedback things loaded properly
         QVariantAnimation *ani = new QVariantAnimation(this);
@@ -916,6 +1019,9 @@ void ParameterManager::_tryCacheHashLoad(int vehicleId, int componentId, QVarian
 
         ani->start(QAbstractAnimation::DeleteWhenStopped);
     } else {
+        // Cache parameter version may differ from vehicle parameter version so we can't trust information loaded from cache parameter version number
+        _parameterSetMajorVersion = -1;
+        _clearMetaData();
         qCInfo(ParameterManagerLog) << "Parameters cache match failed" << qPrintable(QFileInfo(cacheFile).absoluteFilePath());
         if (ParameterManagerDebugCacheFailureLog().isDebugEnabled()) {
             _debugCacheCRC[componentId] = true;
@@ -923,7 +1029,7 @@ void ParameterManager::_tryCacheHashLoad(int vehicleId, int componentId, QVarian
             for (const QString& name: cacheMap.keys()) {
                 _debugCacheParamSeen[componentId][name] = false;
             }
-            qgcApp()->showAppMessage(tr("Parameter cache CRC match failed"));
+            qgcApp()->showMessage(tr("Parameter cache CRC match failed"));
         }
     }
 }
@@ -957,7 +1063,7 @@ QString ParameterManager::readParametersFromStream(QTextStream& stream)
                 }
 
                 Fact* fact = getParameter(componentId, paramName);
-                if (fact->type() != mavTypeToFactType((MAV_PARAM_TYPE)mavType)) {
+                if (fact->type() != _mavTypeToFactType((MAV_PARAM_TYPE)mavType)) {
                     QString error;
                     error  = QStringLiteral("%1:%2 ").arg(componentId).arg(paramName);
                     typeErrors += error;
@@ -1001,11 +1107,11 @@ void ParameterManager::writeParametersToStream(QTextStream& stream)
     stream << "#\n";
     stream << "# Vehicle-Id Component-Id Name Value Type\n";
 
-    for (int componentId: _mapCompId2FactMap.keys()) {
-        for (const QString &paramName: _mapCompId2FactMap[componentId].keys()) {
-            Fact* fact = _mapCompId2FactMap[componentId][paramName];
+    for (int componentId: _mapParameterName2Variant.keys()) {
+        for (const QString &paramName: _mapParameterName2Variant[componentId].keys()) {
+            Fact* fact = _mapParameterName2Variant[componentId][paramName].value<Fact*>();
             if (fact) {
-                stream << _vehicle->id() << "\t" << componentId << "\t" << paramName << "\t" << fact->rawValueStringFullPrecision() << "\t" << QString("%1").arg(factTypeToMavType(fact->type())) << "\n";
+                stream << _vehicle->id() << "\t" << componentId << "\t" << paramName << "\t" << fact->rawValueStringFullPrecision() << "\t" << QString("%1").arg(_factTypeToMavType(fact->type())) << "\n";
             } else {
                 qWarning() << "Internal error: missing fact";
             }
@@ -1015,7 +1121,7 @@ void ParameterManager::writeParametersToStream(QTextStream& stream)
     stream.flush();
 }
 
-MAV_PARAM_TYPE ParameterManager::factTypeToMavType(FactMetaData::ValueType_t factType)
+MAV_PARAM_TYPE ParameterManager::_factTypeToMavType(FactMetaData::ValueType_t factType)
 {
     switch (factType) {
     case FactMetaData::valueTypeUint8:
@@ -1054,7 +1160,7 @@ MAV_PARAM_TYPE ParameterManager::factTypeToMavType(FactMetaData::ValueType_t fac
     }
 }
 
-FactMetaData::ValueType_t ParameterManager::mavTypeToFactType(MAV_PARAM_TYPE mavType)
+FactMetaData::ValueType_t ParameterManager::_mavTypeToFactType(MAV_PARAM_TYPE mavType)
 {
     switch (mavType) {
     case MAV_PARAM_TYPE_UINT8:
@@ -1093,6 +1199,45 @@ FactMetaData::ValueType_t ParameterManager::mavTypeToFactType(MAV_PARAM_TYPE mav
     }
 }
 
+void ParameterManager::_clearMetaData(void)
+{
+    if (_parameterMetaData) {
+        _parameterMetaData->deleteLater();
+        _parameterMetaData = nullptr;
+    }
+}
+
+void ParameterManager::_loadMetaData(void)
+{
+    if (_parameterMetaData) {
+        return;
+    }
+
+    QString metaDataFile;
+    int majorVersion, minorVersion;
+
+    // Load best parameter meta data set
+    metaDataFile = parameterMetaDataFile(_vehicle, _vehicle->firmwareType(), _parameterSetMajorVersion, majorVersion, minorVersion);
+    qCDebug(ParameterManagerLog) << "Loading meta data file:major:minor" << metaDataFile << majorVersion << minorVersion;
+    _parameterMetaData = _vehicle->firmwarePlugin()->loadParameterMetaData(metaDataFile);
+}
+
+void ParameterManager::_addMetaDataToDefaultComponent(void)
+{
+    _loadMetaData();
+
+    if (_metaDataAddedToFacts) {
+        return;
+    }
+    _metaDataAddedToFacts = true;
+
+    // Loop over all parameters in default component adding meta data
+    QVariantMap& factMap = _mapParameterName2Variant[_vehicle->defaultComponentId()];
+    for (const QString& key: factMap.keys()) {
+        _vehicle->firmwarePlugin()->addMetaDataToFact(_parameterMetaData, factMap[key].value<Fact*>(), _vehicle->vehicleType());
+    }
+}
+
 void ParameterManager::_checkInitialLoadComplete(void)
 {
     // Already processed?
@@ -1107,7 +1252,7 @@ void ParameterManager::_checkInitialLoadComplete(void)
         }
     }
 
-    if (!_mapCompId2FactMap.contains(_vehicle->defaultComponentId())) {
+    if (!_mapParameterName2Variant.contains(_vehicle->defaultComponentId())) {
         // No default component params yet, not done yet
         return;
     }
@@ -1151,7 +1296,7 @@ void ParameterManager::_checkInitialLoadComplete(void)
                               "If you are using modified firmware, you may need to resolve any vehicle startup errors to resolve the issue. "
                               "If you are using standard firmware, you may need to upgrade to a newer version to resolve the issue.").arg(qgcApp()->applicationName()).arg(_vehicle->id());
         qCDebug(ParameterManagerLog) << errorMsg;
-        qgcApp()->showAppMessage(errorMsg);
+        qgcApp()->showMessage(errorMsg);
         if (!qgcApp()->runningUnitTests()) {
             qCWarning(ParameterManagerLog) << _logVehiclePrefix(-1) << "The following parameter indices could not be loaded after the maximum number of retries: " << indexList;
         }
@@ -1175,8 +1320,154 @@ void ParameterManager::_initialRequestTimeout(void)
             QString errorMsg = tr("Vehicle %1 did not respond to request for parameters. "
                                   "This will cause %2 to be unable to display its full user interface.").arg(_vehicle->id()).arg(qgcApp()->applicationName());
             qCDebug(ParameterManagerLog) << errorMsg;
-            qgcApp()->showAppMessage(errorMsg);
+            qgcApp()->showMessage(errorMsg);
         }
+    }
+}
+
+QString ParameterManager::parameterMetaDataFile(Vehicle* vehicle, MAV_AUTOPILOT firmwareType, int wantedMajorVersion, int& majorVersion, int& minorVersion)
+{
+    bool            cacheHit = false;
+    FirmwarePlugin* plugin = _anyVehicleTypeFirmwarePlugin(firmwareType);
+
+    // Cached files are stored in settings location
+    QSettings settings;
+    QDir cacheDir = QFileInfo(settings.fileName()).dir();
+
+    // First look for a direct cache hit
+    int cacheMinorVersion, cacheMajorVersion;
+    QFile cacheFile(cacheDir.filePath(QString("%1.%2.%3.xml").arg(_cachedMetaDataFilePrefix).arg(firmwareType).arg(wantedMajorVersion)));
+    if (cacheFile.exists()) {
+        plugin->getParameterMetaDataVersionInfo(cacheFile.fileName(), cacheMajorVersion, cacheMinorVersion);
+        if (wantedMajorVersion != cacheMajorVersion) {
+            qWarning() << "Parameter meta data cache corruption:" << cacheFile.fileName() << "major version does not match file name" << "actual:excepted" << cacheMajorVersion << wantedMajorVersion;
+        } else {
+            qCDebug(ParameterManagerLog) << "Direct cache hit on file:major:minor" << cacheFile.fileName() << cacheMajorVersion << cacheMinorVersion;
+            cacheHit = true;
+        }
+    }
+
+    if (!cacheHit) {
+        // No direct hit, look for lower param set version
+        QString wildcard = QString("%1.%2.*.xml").arg(_cachedMetaDataFilePrefix).arg(firmwareType);
+        QStringList cacheHits = cacheDir.entryList(QStringList(wildcard), QDir::Files, QDir::Name);
+
+        // Find the highest major version number which is below the vehicles major version number
+        int cacheHitIndex = -1;
+        cacheMajorVersion = -1;
+        QRegExp regExp(QString("%1\\.%2\\.(\\d*)\\.xml").arg(_cachedMetaDataFilePrefix).arg(firmwareType));
+        for (int i=0; i< cacheHits.count(); i++) {
+            if (regExp.exactMatch(cacheHits[i]) && regExp.captureCount() == 1) {
+                int majorVersion = regExp.capturedTexts()[0].toInt();
+                if (majorVersion > cacheMajorVersion && majorVersion < wantedMajorVersion) {
+                    cacheMajorVersion = majorVersion;
+                    cacheHitIndex = i;
+                }
+            }
+        }
+
+        if (cacheHitIndex != -1) {
+            // We have a cache hit on a lower major version, read minor version as well
+            int majorVersion;
+            cacheFile.setFileName(cacheDir.filePath(cacheHits[cacheHitIndex]));
+            plugin->getParameterMetaDataVersionInfo(cacheFile.fileName(), majorVersion, cacheMinorVersion);
+            if (majorVersion != cacheMajorVersion) {
+                qWarning() << "Parameter meta data cache corruption:" << cacheFile.fileName() << "major version does not match file name" << "actual:excepted" << majorVersion << cacheMajorVersion;
+                cacheHit = false;
+            } else {
+                qCDebug(ParameterManagerLog) << "Indirect cache hit on file:major:minor:want" << cacheFile.fileName() << cacheMajorVersion << cacheMinorVersion << wantedMajorVersion;
+                cacheHit = true;
+            }
+        }
+    }
+
+    int internalMinorVersion, internalMajorVersion;
+    QString internalMetaDataFile = plugin->internalParameterMetaDataFile(vehicle);
+    plugin->getParameterMetaDataVersionInfo(internalMetaDataFile, internalMajorVersion, internalMinorVersion);
+    qCDebug(ParameterManagerLog) << "Internal meta data file:major:minor" << internalMetaDataFile << internalMajorVersion << internalMinorVersion;
+    if (cacheHit) {
+        // Cache hit is available, we need to check if internal meta data is a better match, if so use internal version
+        if (internalMajorVersion == wantedMajorVersion) {
+            if (cacheMajorVersion == wantedMajorVersion) {
+                // Both internal and cache are direct hit on major version, Use higher minor version number
+                cacheHit = cacheMinorVersion > internalMinorVersion;
+            } else {
+                // Direct internal hit, but not direct hit in cache, use internal
+                cacheHit = false;
+            }
+        } else {
+            if (cacheMajorVersion == wantedMajorVersion) {
+                // Direct hit on cache, no direct hit on internal, use cache
+                cacheHit = true;
+            } else {
+                // No direct hit anywhere, use internal
+                cacheHit = false;
+            }
+        }
+    }
+
+    QString metaDataFile;
+    if (cacheHit && !qgcApp()->runningUnitTests()) {
+        majorVersion = cacheMajorVersion;
+        minorVersion = cacheMinorVersion;
+        metaDataFile = cacheFile.fileName();
+    } else {
+        majorVersion = internalMajorVersion;
+        minorVersion = internalMinorVersion;
+        metaDataFile = internalMetaDataFile;
+    }
+    qCDebug(ParameterManagerLog) << "ParameterManager::parameterMetaDataFile file:major:minor" << metaDataFile << majorVersion << minorVersion;
+
+    return metaDataFile;
+}
+
+FirmwarePlugin* ParameterManager::_anyVehicleTypeFirmwarePlugin(MAV_AUTOPILOT firmwareType)
+{
+    // There are cases where we need a FirmwarePlugin but we don't have a vehicle. In those specified case the plugin for any of the supported vehicle types will do.
+    MAV_TYPE anySupportedVehicleType = qgcApp()->toolbox()->firmwarePluginManager()->supportedVehicleTypes(firmwareType)[0];
+
+    return qgcApp()->toolbox()->firmwarePluginManager()->firmwarePluginForAutopilot(firmwareType, anySupportedVehicleType);
+}
+
+void ParameterManager::cacheMetaDataFile(const QString& metaDataFile, MAV_AUTOPILOT firmwareType)
+{
+    FirmwarePlugin* plugin = _anyVehicleTypeFirmwarePlugin(firmwareType);
+
+    int newMajorVersion, newMinorVersion;
+    plugin->getParameterMetaDataVersionInfo(metaDataFile, newMajorVersion, newMinorVersion);
+    qCDebug(ParameterManagerLog) << "ParameterManager::cacheMetaDataFile file:firmware:major;minor" << metaDataFile << firmwareType << newMajorVersion << newMinorVersion;
+
+    // Find the cache hit closest to this new file
+    int cacheMajorVersion, cacheMinorVersion;
+    QString cacheHit = ParameterManager::parameterMetaDataFile(nullptr, firmwareType, newMajorVersion, cacheMajorVersion, cacheMinorVersion);
+    qCDebug(ParameterManagerLog) << "ParameterManager::cacheMetaDataFile cacheHit file:firmware:major;minor" << cacheHit << cacheMajorVersion << cacheMinorVersion;
+
+    bool cacheNewFile = false;
+    if (cacheHit.isEmpty()) {
+        // No cache hits, store the new file
+        cacheNewFile = true;
+    } else if (cacheMajorVersion == newMajorVersion) {
+        // Direct hit on major version in cache:
+        //      Cache new file if newer minor version
+        //      Also delete older cache file
+        if (newMinorVersion > cacheMinorVersion) {
+            cacheNewFile = true;
+            QFile::remove(cacheHit);
+        }
+    } else {
+        // Indirect hit in cache, store new file
+        cacheNewFile = true;
+    }
+
+    if (cacheNewFile) {
+        // Cached files are stored in settings location. Copy from current file to cache naming.
+
+        QSettings settings;
+        QDir cacheDir = QFileInfo(settings.fileName()).dir();
+        QFile cacheFile(cacheDir.filePath(QString("%1.%2.%3.xml").arg(_cachedMetaDataFilePrefix).arg(firmwareType).arg(newMajorVersion)));
+        qCDebug(ParameterManagerLog) << "ParameterManager::cacheMetaDataFile caching file:" << cacheFile.fileName();
+        QFile newFile(metaDataFile);
+        newFile.copy(cacheFile.fileName());
     }
 }
 
@@ -1289,22 +1580,130 @@ void ParameterManager::_loadOfflineEditingParams(void)
             break;
         }
 
-        Fact* fact = new Fact(defaultComponentId, paramName, mavTypeToFactType(paramType), this);
+        // Get parameter set version
+        if (!_versionParam.isEmpty() && _versionParam == paramName) {
+            _parameterSetMajorVersion = paramValue.toInt();
+        }
 
-        FactMetaData* factMetaData = _vehicle->compInfoManager()->compInfoParam(defaultComponentId)->factMetaDataForName(paramName, fact->type());
-        fact->setMetaData(factMetaData);
-
-        _mapCompId2FactMap[defaultComponentId][paramName] = fact;
+        Fact* fact = new Fact(defaultComponentId, paramName, _mavTypeToFactType(paramType), this);
+        _mapParameterName2Variant[defaultComponentId][paramName] = QVariant::fromValue(fact);
     }
 
+    _addMetaDataToDefaultComponent();
+    _setupDefaultComponentCategoryMap();
     _parametersReady = true;
     _initialLoadComplete = true;
     _debugCacheCRC.clear();
 }
 
+void ParameterManager::saveToJson(int componentId, const QStringList& paramsToSave, QJsonObject& saveObject)
+{
+    QList<int>  rgCompIds;
+    QStringList rgParamNames;
+
+    if (componentId == MAV_COMP_ID_ALL) {
+        rgCompIds = _mapParameterName2Variant.keys();
+    } else {
+        rgCompIds.append(_actualComponentId(componentId));
+    }
+
+    QJsonArray rgParams;
+
+    // Loop over all requested component ids
+    for (int i=0; i<rgCompIds.count(); i++) {
+        int compId = rgCompIds[i];
+
+        if (!_mapParameterName2Variant.contains(compId)) {
+            qCDebug(ParameterManagerLog) << "ParameterManager::saveToJson no params for compId" << compId;
+            continue;
+        }
+
+        // Build list of parameter names if not specified
+        if (paramsToSave.count() == 0) {
+            rgParamNames = 	parameterNames(compId);
+        } else {
+            rgParamNames = paramsToSave;
+        }
+
+        // Loop over parameter names adding each to json array
+        for (int j=0; j<rgParamNames.count(); j++) {
+            QString paramName = rgParamNames[j];
+
+            if (!parameterExists(compId, paramName)) {
+                qCDebug(ParameterManagerLog) << "ParameterManager::saveToJson param not found compId:param" << compId << paramName;
+                continue;
+            }
+
+            QJsonObject paramJson;
+            Fact* fact = getParameter(compId, paramName);
+            paramJson.insert(_jsonCompIdKey, QJsonValue(compId));
+            paramJson.insert(_jsonParamNameKey, QJsonValue(fact->name()));
+            paramJson.insert(_jsonParamValueKey, QJsonValue(fact->rawValue().toDouble()));
+
+            rgParams.append(QJsonValue(paramJson));
+        }
+    }
+
+    saveObject.insert(_jsonParametersKey, QJsonValue(rgParams));
+}
+
+bool ParameterManager::loadFromJson(const QJsonObject& json, bool required, QString& errorString)
+{
+    QList<QJsonValue::Type> keyTypes;
+
+    errorString.clear();
+
+    if (required) {
+        if (!JsonHelper::validateRequiredKeys(json, QStringList(_jsonParametersKey), errorString)) {
+            return false;
+        }
+    } else if (!json.contains(_jsonParametersKey)) {
+        return true;
+    }
+
+    keyTypes = { QJsonValue::Array };
+    if (!JsonHelper::validateKeyTypes(json, QStringList(_jsonParametersKey), keyTypes, errorString)) {
+        return false;
+    }
+
+    QJsonArray rgParams = json[_jsonParametersKey].toArray();
+    for (int i=0; i<rgParams.count(); i++) {
+        QJsonValueRef paramValue = rgParams[i];
+
+        if (!paramValue.isObject()) {
+            errorString = tr("%1 key is not a json object").arg(_jsonParametersKey);
+            return false;
+        }
+        QJsonObject param = paramValue.toObject();
+
+        QStringList requiredKeys = { _jsonCompIdKey, _jsonParamNameKey, _jsonParamValueKey };
+        if (!JsonHelper::validateRequiredKeys(param, requiredKeys, errorString)) {
+            return false;
+        }
+        keyTypes = { QJsonValue::Double, QJsonValue::String, QJsonValue::Double };
+        if (!JsonHelper::validateKeyTypes(param, requiredKeys, keyTypes, errorString)) {
+            return false;
+        }
+
+        int compId = param[_jsonCompIdKey].toInt();
+        QString name = param[_jsonParamNameKey].toString();
+        double value = param[_jsonParamValueKey].toDouble();
+
+        if (!parameterExists(compId, name)) {
+            qCDebug(ParameterManagerLog) << "ParameterManager::loadFromJson param not found compId:param" << compId << name;
+            continue;
+        }
+
+        Fact* fact = getParameter(compId, name);
+        fact->setRawValue(value);
+    }
+
+    return true;
+}
+
 void ParameterManager::resetAllParametersToDefaults()
 {
-    _vehicle->sendMavCommand(MAV_COMP_ID_AUTOPILOT1,
+    _vehicle->sendMavCommand(MAV_COMP_ID_ALL,
                              MAV_CMD_PREFLIGHT_STORAGE,
                              true,  // showError
                              2,     // Reset params to default

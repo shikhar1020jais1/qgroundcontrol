@@ -17,7 +17,7 @@ import QGroundControl.Controls      1.0
 
 Rectangle {
     id:         _root
-    color:      qgcPal.toolbarBackground
+    color:      qgcPal.globalTheme === QGCPalette.Light ? QGroundControl.corePlugin.options.toolbarBackgroundLight : QGroundControl.corePlugin.options.toolbarBackgroundDark
     width:      _idealWidth < repeater.contentWidth ? repeater.contentWidth : _idealWidth
     height:     Math.min(maxHeight, toolStripColumn.height + (flickable.anchors.margins * 2))
     radius:     ScreenTools.defaultFontPixelWidth / 2
@@ -26,21 +26,34 @@ Rectangle {
     property real   maxHeight           ///< Maximum height for control, determines whether text is hidden to make control shorter
     property alias  title:              titleLabel.text
 
-    property var _dropPanel: dropPanel
+    property AbstractButton lastClickedButton: null
 
     function simulateClick(buttonIndex) {
-        buttonIndex = buttonIndex + 1 // skip over title label
-        var button = toolStripColumn.children[buttonIndex]
-        if (button.checkable) {
-            button.checked = !button.checked
+        buttonIndex = buttonIndex + 1 // skip over title
+        if (!toolStripColumn.children[buttonIndex].checked) {
+            toolStripColumn.children[buttonIndex].checked = true
+            toolStripColumn.children[buttonIndex].clicked()
         }
-        button.clicked()
     }
 
     // Ensure we don't get narrower than content
     property real _idealWidth: (ScreenTools.isMobile ? ScreenTools.minTouchPixels : ScreenTools.defaultFontPixelWidth * 8) + toolStripColumn.anchors.margins * 2
 
+    signal clicked(int index, bool checked)
     signal dropped(int index)
+
+    function setChecked(idx, check) {
+        repeater.itemAt(idx).checked = check
+    }
+
+    function getChecked(idx) {
+        return repeater.itemAt(idx).checked
+    }
+
+    ButtonGroup {
+        id:         buttonGroup
+        buttons:    toolStripColumn.children
+    }
 
     DeadMouseArea {
         anchors.fill: parent
@@ -55,7 +68,6 @@ Rectangle {
         height:             parent.height
         contentHeight:      toolStripColumn.height
         flickableDirection: Flickable.VerticalFlick
-        clip:               true
 
         Column {
             id:             toolStripColumn
@@ -75,29 +87,37 @@ Rectangle {
             Repeater {
                 id: repeater
 
-                ToolStripHoverButton {
-                    id:                 buttonTemplate
-                    anchors.left:       toolStripColumn.left
-                    anchors.right:      toolStripColumn.right
-                    height:             width
-                    radius:             ScreenTools.defaultFontPixelWidth / 2
-                    fontPointSize:      ScreenTools.smallFontPointSize
-                    toolStripAction:    modelData
-                    dropPanel:          _dropPanel
-                    onDropped:          _root.dropped(index)
+                QGCHoverButton {
+                    id:             buttonTemplate
 
-                    onCheckedChanged: {
-                        // We deal with exclusive check state manually since usinug autoExclusive caused all sorts of crazt problems
-                        if (checked) {
-                            for (var i=0; i<repeater.count; i++) {
-                                if (i != index) {
-                                    var button = repeater.itemAt(i)
-                                    if (button.checked) {
-                                        button.checked = false
-                                    }
-                                }
-                            }
+                    anchors.left:   toolStripColumn.left
+                    anchors.right:  toolStripColumn.right
+                    height:         width
+                    radius:         ScreenTools.defaultFontPixelWidth / 2
+                    fontPointSize:  ScreenTools.smallFontPointSize
+                    autoExclusive:  true
+
+                    enabled:        modelData.buttonEnabled
+                    visible:        modelData.buttonVisible
+                    imageSource:    modelData.showAlternateIcon ? modelData.alternateIconSource : modelData.iconSource
+                    text:           modelData.name
+                    checked:        modelData.checked !== undefined ? modelData.checked : checked
+
+                    ButtonGroup.group: buttonGroup
+                    // Only drop panel and toggleable are checkable
+                    checkable: modelData.dropPanelComponent !== undefined || (modelData.toggle !== undefined && modelData.toggle)
+
+                    onClicked: {
+                        dropPanel.hide()    // DropPanel will call hide on "lastClickedButton"
+                        if (modelData.dropPanelComponent === undefined) {
+                            _root.clicked(index, checked)
+                        } else if (checked) {
+                            var panelEdgeTopPoint = mapToItem(_root, width, 0)
+                            dropPanel.show(panelEdgeTopPoint, height, modelData.dropPanelComponent)
+                            _root.dropped(index)
                         }
+                        if(_root && buttonTemplate)
+                            _root.lastClickedButton = buttonTemplate
                     }
                 }
             }

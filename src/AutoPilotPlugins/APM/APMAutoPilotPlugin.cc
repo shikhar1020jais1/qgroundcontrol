@@ -128,11 +128,9 @@ const QVariantList& APMAutoPilotPlugin::vehicleComponents(void)
             _tuningComponent->setupTriggerSignals();
             _components.append(QVariant::fromValue((VehicleComponent*)_tuningComponent));
 
-            if(_vehicle->parameterManager()->parameterExists(-1, "MNT_RC_IN_PAN")) {
-                _cameraComponent = new APMCameraComponent(_vehicle, this);
-                _cameraComponent->setupTriggerSignals();
-                _components.append(QVariant::fromValue((VehicleComponent*)_cameraComponent));
-            }
+            //_cameraComponent = new APMCameraComponent(_vehicle, this);
+            //_cameraComponent->setupTriggerSignals();
+            //_components.append(QVariant::fromValue((VehicleComponent*)_cameraComponent));
 
             if (_vehicle->sub()) {
                 _lightsComponent = new APMLightsComponent(_vehicle, this);
@@ -200,8 +198,6 @@ QString APMAutoPilotPlugin::prerequisiteSetup(VehicleComponent* component) const
 void APMAutoPilotPlugin::_checkForBadCubeBlack(void)
 {
     bool cubeBlackFound = false;
-#if 0
-    // FIXME: Put back
     for (const QVariant& varLink: _vehicle->links()) {
         SerialLink* serialLink = varLink.value<SerialLink*>();
         if (serialLink && QSerialPortInfo(*serialLink->_hackAccessToPort()).description().contains(QStringLiteral("CubeBlack"))) {
@@ -209,7 +205,6 @@ void APMAutoPilotPlugin::_checkForBadCubeBlack(void)
         }
 
     }
-#endif
     if (!cubeBlackFound) {
         return;
     }
@@ -223,7 +218,7 @@ void APMAutoPilotPlugin::_checkForBadCubeBlack(void)
     if (paramMgr->parameterExists(-1, paramAcc3) && paramMgr->getParameter(-1, paramAcc3)->rawValue().toInt() == 0 &&
             paramMgr->parameterExists(-1, paramGyr3) && paramMgr->getParameter(-1, paramGyr3)->rawValue().toInt() == 0 &&
             paramMgr->parameterExists(-1, paramEnableMask) && paramMgr->getParameter(-1, paramEnableMask)->rawValue().toInt() >= 7) {
-        qgcApp()->showAppMessage(tr("WARNING: The flight board you are using has a critical service bulletin against it which advises against flying. For details see: https://discuss.cubepilot.org/t/sb-0000002-critical-service-bulletin-for-cubes-purchased-between-january-2019-to-present-do-not-fly/406"));
+        qgcApp()->showMessage(tr("WARNING: The flight board you are using has a critical service bulletin against it which advises against flying. For details see: https://discuss.cubepilot.org/t/sb-0000002-critical-service-bulletin-for-cubes-purchased-between-january-2019-to-present-do-not-fly/406"));
 
     }
 }

@@ -7,12 +7,15 @@
  *
  ****************************************************************************/
 
+
+/// @file
+///     @author Don Gagne <don@thegagnes.com>
+
 #include "AirframeComponentController.h"
 #include "AirframeComponentAirframes.h"
 #include "QGCMAVLink.h"
 #include "MultiVehicleManager.h"
 #include "QGCApplication.h"
-#include "LinkManager.h"
 
 #include <QVariant>
 #include <QQmlProperty>
@@ -82,7 +85,7 @@ AirframeComponentController::~AirframeComponentController()
 void AirframeComponentController::changeAutostart(void)
 {
     if (qgcApp()->toolbox()->multiVehicleManager()->vehicles()->count() > 1) {
-        qgcApp()->showAppMessage(tr("You cannot change airframe configuration while connected to multiple vehicles."));
+        qgcApp()->showMessage(tr("You cannot change airframe configuration while connected to multiple vehicles."));
 		return;
 	}
 	

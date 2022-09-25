@@ -34,9 +34,9 @@ QGCComboBox {
 
     onActivated: {
         if (index == 0) {
-            mainWindow.armVehicleRequest()
+            mainWindow.armVehicle()
         } else {
-            mainWindow.disarmVehicleRequest()
+            mainWindow.disarmVehicle()
         }
         currentIndex = -1
     }

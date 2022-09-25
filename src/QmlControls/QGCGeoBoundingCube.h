@@ -40,7 +40,7 @@ public:
     Q_INVOKABLE bool            isValid () const;
     Q_INVOKABLE QGeoCoordinate  center  () const;
 
-    inline bool operator ==(const QGCGeoBoundingCube& other) const
+    inline bool operator ==(const QGCGeoBoundingCube& other)
     {
         return pointNW == other.pointNW && pointSE == other.pointSE;
     }

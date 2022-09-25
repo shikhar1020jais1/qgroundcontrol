@@ -34,12 +34,14 @@ SetupPage {
 
             property real _margins: ScreenTools.defaultFontPixelHeight
 
+            ExclusiveGroup { id: buttonGroup }
+
             Row {
                 spacing: _margins
                 QGCButton {
                     id:             atcButton
                     text:           qsTr("Attitude Controller Parameters")
-                    autoExclusive:  true
+                    exclusiveGroup: buttonGroup
                     checked:        true
                     onClicked:      checked = true
                 }
@@ -47,14 +49,14 @@ SetupPage {
                 QGCButton {
                     id:             posButton
                     text:           qsTr("Position Controller Parameters")
-                    autoExclusive:  true
+                    exclusiveGroup: buttonGroup
                     onClicked:      checked = true
                 }
 
                 QGCButton {
                     id:             navButton
                     text:           qsTr("Waypoint navigation parameters")
-                    autoExclusive:  true
+                    exclusiveGroup: buttonGroup
                     onClicked:      checked = true
                 }
             }
@@ -157,7 +159,7 @@ SetupPage {
                     anchors.right:      parent.right
                     anchors.top:        parent.top
 
-                    sourceComponent: globals.activeVehicle.versionCompare(3, 6, 0) <= 0 ? velColumnUpTo36 :velColumn40
+                    sourceComponent: activeVehicle.versionCompare(3, 6, 0) <= 0 ? velColumnUpTo36 :velColumn40
                 }
             } // Rectangle - VEL parameters
 
@@ -224,7 +226,7 @@ SetupPage {
                     anchors.right:      parent.right
                     anchors.top:        parent.top
 
-                    sourceComponent: globals.activeVehicle.versionCompare(3, 6, 0) < 0 ? wpnavColumn35 : wpnavColumn36
+                    sourceComponent: activeVehicle.versionCompare(3, 6, 0) < 0 ? wpnavColumn35 : wpnavColumn36
                     }
             } // Rectangle - WPNAV parameters
         } // Column

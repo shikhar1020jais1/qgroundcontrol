@@ -35,6 +35,30 @@ FactPanelController::FactPanelController()
     connect(&_missingParametersTimer, &QTimer::timeout, this, &FactPanelController::_checkForMissingParameters);
 }
 
+void FactPanelController::_notifyPanelMissingParameter(const QString& missingParam)
+{
+    if (qgcApp()->mainRootWindow()) {
+        QVariant returnedValue;
+        QMetaObject::invokeMethod(
+            qgcApp()->mainRootWindow(),
+            "showMissingParameterOverlay",
+            Q_RETURN_ARG(QVariant, returnedValue),
+            Q_ARG(QVariant, missingParam));
+    }
+}
+
+void FactPanelController::_notifyPanelErrorMsg(const QString& errorMsg)
+{
+    if(qgcApp()->mainRootWindow()) {
+        QVariant returnedValue;
+        QMetaObject::invokeMethod(
+            qgcApp()->mainRootWindow(),
+            "showFactError",
+            Q_RETURN_ARG(QVariant, returnedValue),
+            Q_ARG(QVariant, errorMsg));
+    }
+}
+
 void FactPanelController::_reportMissingParameter(int componentId, const QString& name)
 {
     if (componentId == FactSystem::defaultComponentId) {
@@ -42,7 +66,20 @@ void FactPanelController::_reportMissingParameter(int componentId, const QString
     }
 
     qgcApp()->reportMissingParameter(componentId, name);
-    qCWarning(FactPanelControllerLog) << "Missing parameter:" << QString("%1:%2").arg(componentId).arg(name);
+
+    QString missingParam = QString("%1:%2").arg(componentId).arg(name);
+
+    qCWarning(FactPanelControllerLog) << "Missing parameter:" << missingParam;
+
+    // If missing parameters a reported from the constructor of a derived class we
+    // will not have access to _factPanel yet. Just record list of missing facts
+    // in that case instead of notify. Once _factPanel is available they will be
+    // send out for real.
+    if (qgcApp()->mainRootWindow()) {
+        _notifyPanelMissingParameter(missingParam);
+    } else {
+        _delayedMissingParams += missingParam;
+    }
 }
 
 bool FactPanelController::_allParametersExists(int componentId, QStringList names)
@@ -77,6 +114,13 @@ Fact* FactPanelController::getParameterFact(int componentId, const QString& name
 bool FactPanelController::parameterExists(int componentId, const QString& name)
 {
     return _vehicle ? _vehicle->parameterManager()->parameterExists(componentId, name) : false;
+}
+
+void FactPanelController::_showInternalError(const QString& errorMsg)
+{
+    _notifyPanelErrorMsg(tr("Internal Error: %1").arg(errorMsg));
+    qCWarning(FactPanelControllerLog) << "Internal Error" << errorMsg;
+    qgcApp()->showMessage(errorMsg);
 }
 
 void FactPanelController::getMissingParameters(QStringList rgNames)

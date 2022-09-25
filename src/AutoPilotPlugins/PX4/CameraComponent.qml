@@ -300,6 +300,17 @@ SetupPage {
                         }
                     }
                 } // QGCGroupBox - Hardware Settings
+
+                QGCGroupBox {
+                    title:              qsTr("Camera Test")
+                    Layout.fillWidth:   true
+
+                    QGCButton {
+                        anchors.horizontalCenter:   parent.horizontalCenter
+                        text:                       qsTr("Trigger Camera")
+                        onClicked:                  controller.vehicle.triggerCamera()
+                    }
+                }
             }
         }
     }

@@ -13,7 +13,6 @@ Button {
     id:             _rootButton
     property bool   setupComplete:  true                                    ///< true: setup complete indicator shows as completed
     property bool   setupIndicator: true                                    ///< true: show setup complete indicator
-    property var    imageColor:     undefined
     property string imageResource:  "/qmlimages/subMenuButtonImage.png"     ///< Button image
     property size   sourceSize:     Qt.size(ScreenTools.defaultFontPixelHeight * 2, ScreenTools.defaultFontPixelHeight * 2)
 
@@ -50,7 +49,7 @@ Button {
                 height:                 ScreenTools.defaultFontPixelHeight * 2
                 fillMode:               Image.PreserveAspectFit
                 mipmap:                 true
-                color:                  imageColor ? imageColor : (control.setupComplete ? qgcPal.button : "red")
+                color:                  control.setupComplete ? qgcPal.button : "red"
                 source:                 control.imageResource
                 sourceSize:             _rootButton.sourceSize
             }

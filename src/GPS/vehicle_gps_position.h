@@ -42,15 +42,13 @@
  * and was manually copied here.
  */
 
-struct sensor_gps_s {
+struct vehicle_gps_position_s {
 	uint64_t timestamp;
 	uint64_t time_utc_usec;
 	int32_t lat;
 	int32_t lon;
 	int32_t alt;
 	int32_t alt_ellipsoid;
-	uint16_t automatic_gain_control;
-	uint8_t jamming_state;
 	float s_variance_m_s;
 	float c_variance_rad;
 	float eph;

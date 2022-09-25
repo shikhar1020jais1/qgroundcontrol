@@ -7,6 +7,15 @@
  *
  ****************************************************************************/
 
+
+/**
+ * @file
+ *   @brief Main executable
+ *   @author Lorenz Meier <mavteam@student.ethz.ch>
+ *
+ */
+
+#include "QGC.h"
 #include <QtGlobal>
 #include <QApplication>
 #include <QIcon>
@@ -17,21 +26,12 @@
 #include <QUdpSocket>
 #include <QtPlugin>
 #include <QStringListModel>
-
-#include "QGC.h"
 #include "QGCApplication.h"
 #include "AppMessages.h"
-
-#ifndef NO_SERIAL_LINK
-    #include "SerialLink.h"
-#endif
 
 #ifndef __mobile__
     #include "QGCSerialPortInfo.h"
     #include "RunGuard.h"
-#ifndef NO_SERIAL_LINK
-    #include <QSerialPort>
-#endif
 #endif
 
 #ifdef UNITTEST_BUILD
@@ -214,18 +214,6 @@ bool checkAndroidWritePermission() {
 }
 #endif
 
-// To shut down QGC on Ctrl+C on Linux
-#ifdef Q_OS_LINUX
-#include <csignal>
-
-void sigHandler(int s)
-{
-    std::signal(s, SIG_DFL);
-    QApplication::instance()->quit();
-}
-
-#endif /* Q_OS_LINUX */
-
 //-----------------------------------------------------------------------------
 /**
  * @brief Starts the application
@@ -238,14 +226,7 @@ void sigHandler(int s)
 int main(int argc, char *argv[])
 {
 #ifndef __mobile__
-    // We make the runguard key different for custom and non custom
-    // builds, so they can be executed together in the same device.
-    // Stable and Daily have same QGC_APPLICATION_NAME so they would
-    // not be able to run at the same time
-    QString runguardString(QGC_APPLICATION_NAME);
-    runguardString.append("RunGuardKey");
-
-    RunGuard guard(runguardString);
+    RunGuard guard("QGroundControlRunGuardKey");
     if (!guard.tryToRun()) {
         // QApplication is necessary to use QMessageBox
         QApplication errorApp(argc, argv);
@@ -272,7 +253,7 @@ int main(int argc, char *argv[])
 #ifndef __ios__
     // Prevent Apple's app nap from screwing us over
     // tip: the domain can be cross-checked on the command line with <defaults domains>
-    QProcess::execute("defaults", {"write org.qgroundcontrol.qgroundcontrol NSAppSleepDisabled -bool YES"});
+    QProcess::execute("defaults write org.qgroundcontrol.qgroundcontrol NSAppSleepDisabled -bool YES");
 #endif
 #endif
 
@@ -293,11 +274,6 @@ int main(int argc, char *argv[])
     }
 #endif
 
-#ifdef Q_OS_LINUX
-    std::signal(SIGINT, sigHandler);
-    std::signal(SIGTERM, sigHandler);
-#endif /* Q_OS_LINUX */
-
     // The following calls to qRegisterMetaType are done to silence debug output which warns
     // that we use these types in signals, and without calling qRegisterMetaType we can't queue
     // these signals. In general we don't queue these signals, but we do what the warning says
@@ -315,8 +291,6 @@ int main(int argc, char *argv[])
     qRegisterMetaType<QGCSerialPortInfo>();
 #endif
 #endif
-
-    qRegisterMetaType<Vehicle::MavCmdResultFailureCode_t>("Vehicle::MavCmdResultFailureCode_t");
 
     // We statically link our own QtLocation plugin
 

@@ -28,9 +28,7 @@ Item {
     anchors.top:            parent.top
     anchors.bottom:         parent.bottom
 
-    property bool showIndicator: _activeVehicle && _activeVehicle.roiModeSupported
-
-    property var _activeVehicle: QGroundControl.multiVehicleManager.activeVehicle
+    property bool showIndicator: activeVehicle && activeVehicle.roiModeSupported
 
     Component {
         id: roiInfo
@@ -58,12 +56,12 @@ Item {
 
                 QGCButton {
                     id:             roiButton
-                    visible:        _activeVehicle && _activeVehicle.isROIEnabled
+                    visible:        activeVehicle && activeVehicle.isROIEnabled
                     text:           qsTr("Disable ROI")
                     onClicked: {
-                        if(_activeVehicle)
-                            _activeVehicle.stopGuidedModeROI()
-                        mainWindow.hideIndicatorPopup()
+                        if(activeVehicle)
+                            activeVehicle.stopGuidedModeROI()
+                        mainWindow.hidePopUp()
                     }
                 }
             }
@@ -77,15 +75,15 @@ Item {
         anchors.bottom:     parent.bottom
         sourceSize.height:  height
         source:             "/qmlimages/roi.svg"
-        color:              _activeVehicle && _activeVehicle.isROIEnabled ? qgcPal.colorGreen : qgcPal.text
+        color:              activeVehicle && activeVehicle.isROIEnabled ? qgcPal.colorGreen : qgcPal.text
         fillMode:           Image.PreserveAspectFit
-        opacity:            _activeVehicle && _activeVehicle.isROIEnabled ? 1 : 0.5
+        opacity:            activeVehicle && activeVehicle.isROIEnabled ? 1 : 0.5
     }
 
     MouseArea {
         anchors.fill:   parent
         onClicked: {
-            mainWindow.showIndicatorPopup(_root, roiInfo)
+            mainWindow.showPopUp(_root, roiInfo)
         }
     }
 }

@@ -9,9 +9,9 @@
 
 #include "StructureScanComplexItemTest.h"
 #include "QGCApplication.h"
-#include "PlanMasterController.h"
 
 StructureScanComplexItemTest::StructureScanComplexItemTest(void)
+    : _offlineVehicle(nullptr)
 {
     _polyPoints << QGeoCoordinate(47.633550640000003, -122.08982199) << QGeoCoordinate(47.634129020000003, -122.08887249) <<
                    QGeoCoordinate(47.633619320000001, -122.08811074) << QGeoCoordinate(47.633189139999999, -122.08900124);
@@ -23,8 +23,8 @@ void StructureScanComplexItemTest::init(void)
 
     _rgSignals[dirtyChangedIndex] = SIGNAL(dirtyChanged(bool));
 
-    _masterController = new PlanMasterController(this);
-    _structureScanItem = new StructureScanComplexItem(_masterController, false /* flyView */, QString() /* kmlFile */);
+    _offlineVehicle = new Vehicle(MAV_AUTOPILOT_PX4, MAV_TYPE_QUADROTOR, qgcApp()->toolbox()->firmwarePluginManager(), this);
+    _structureScanItem = new StructureScanComplexItem(_offlineVehicle, false /* flyView */, QString() /* kmlFile */, this /* parent */);
     _structureScanItem->setDirty(false);
 
     _multiSpy = new MultiSignalSpy();
@@ -34,14 +34,8 @@ void StructureScanComplexItemTest::init(void)
 
 void StructureScanComplexItemTest::cleanup(void)
 {
-    delete _masterController;
-    delete _multiSpy;
-
-    _masterController   = nullptr;
-    _structureScanItem  = nullptr;  // Deleted when _masterController is deleted
-    _multiSpy           = nullptr;
-
-    UnitTest::cleanup();
+    delete _structureScanItem;
+    delete _offlineVehicle;
 }
 
 void StructureScanComplexItemTest::_testDirty(void)
@@ -91,7 +85,7 @@ void StructureScanComplexItemTest::_initItem(void)
         mapPolygon->appendVertex(vertex);
     }
 
-    _structureScanItem->cameraCalc()->setCameraBrand(CameraCalc::canonicalManualCameraName());
+    _structureScanItem->cameraCalc()->cameraName()->setRawValue(CameraCalc::manualCameraName());
     _structureScanItem->layers()->setCookedValue(2);
     _structureScanItem->setDirty(false);
 
@@ -120,7 +114,7 @@ void StructureScanComplexItemTest::_testSaveLoad(void)
     _structureScanItem->save(items);
 
     QString errorString;
-    StructureScanComplexItem* newItem = new StructureScanComplexItem(_masterController, false /* flyView */, QString() /* kmlFile */);
+    StructureScanComplexItem* newItem = new StructureScanComplexItem(_offlineVehicle, false /* flyView */, QString() /* kmlFile */, this /* parent */);
     QVERIFY(newItem->load(items[0].toObject(), 10, errorString));
     QVERIFY(errorString.isEmpty());
     _validateItem(newItem);

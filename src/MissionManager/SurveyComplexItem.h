@@ -16,21 +16,19 @@
 
 Q_DECLARE_LOGGING_CATEGORY(SurveyComplexItemLog)
 
-class PlanMasterController;
-
 class SurveyComplexItem : public TransectStyleComplexItem
 {
     Q_OBJECT
 
 public:
+    /// @param vehicle Vehicle which this is being contructed for
     /// @param flyView true: Created for use in the Fly View, false: Created for use in the Plan View
     /// @param kmlOrShpFile Polygon comes from this file, empty for default polygon
-    SurveyComplexItem(PlanMasterController* masterController, bool flyView, const QString& kmlOrShpFile);
+    SurveyComplexItem(Vehicle* vehicle, bool flyView, const QString& kmlOrShpFile, QObject* parent);
 
-    Q_PROPERTY(Fact*            gridAngle              READ gridAngle              CONSTANT)
-    Q_PROPERTY(Fact*            flyAlternateTransects  READ flyAlternateTransects  CONSTANT)
-    Q_PROPERTY(Fact*            splitConcavePolygons   READ splitConcavePolygons   CONSTANT)
-    Q_PROPERTY(QGeoCoordinate   centerCoordinate       READ centerCoordinate       WRITE setCenterCoordinate)
+    Q_PROPERTY(Fact* gridAngle              READ gridAngle              CONSTANT)
+    Q_PROPERTY(Fact* flyAlternateTransects  READ flyAlternateTransects  CONSTANT)
+    Q_PROPERTY(Fact* splitConcavePolygons   READ splitConcavePolygons   CONSTANT)
 
     Fact* gridAngle             (void) { return &_gridAngleFact; }
     Fact* flyAlternateTransects (void) { return &_flyAlternateTransectsFact; }
@@ -39,19 +37,17 @@ public:
     Q_INVOKABLE void rotateEntryPoint(void);
 
     // Overrides from ComplexMissionItem
-    QString         patternName         (void) const final { return name; }
-    bool            load                (const QJsonObject& complexObject, int sequenceNumber, QString& errorString) final;
-    QString         mapVisualQML        (void) const final { return QStringLiteral("SurveyMapVisual.qml"); }
-    QString         presetsSettingsGroup(void) { return settingsGroup; }
-    void            savePreset          (const QString& name);
-    void            loadPreset          (const QString& name);
-    bool            isSurveyItem        (void) const final { return true; }
-    QGeoCoordinate  centerCoordinate    (void) const { return _surveyAreaPolygon.center(); }
-    void            setCenterCoordinate (const QGeoCoordinate& coordinate) { _surveyAreaPolygon.setCenter(coordinate); }
+    bool    load                (const QJsonObject& complexObject, int sequenceNumber, QString& errorString) final;
+    QString mapVisualQML        (void) const final { return QStringLiteral("SurveyMapVisual.qml"); }
+    QString presetsSettingsGroup(void) { return settingsGroup; }
+    void    savePreset          (const QString& name);
+    void    loadPreset          (const QString& name);
 
     // Overrides from TransectStyleComplexItem
     void    save                (QJsonArray&  planItems) final;
     bool    specifiesCoordinate (void) const final { return true; }
+    void    appendMissionItems  (QList<MissionItem*>& items, QObject* missionItemParent) final;
+    void    applyNewAltitude    (double newAltitude) final;
     double  timeBetweenShots    (void) final;
 
     // Overrides from VisualMissionionItem
@@ -71,8 +67,6 @@ public:
         EntryLocationLast = EntryLocationBottomRight
     };
 
-    static const QString name;
-
     static const char* jsonComplexItemTypeValue;
     static const char* settingsGroup;
     static const char* gridAngleName;
@@ -86,11 +80,10 @@ signals:
     void refly90DegreesChanged(bool refly90Degrees);
 
 private slots:
-    void _updateWizardMode              (void);
-
     // Overrides from TransectStyleComplexItem
-    void _rebuildTransectsPhase1        (void) final;
-    void _recalcCameraShots             (void) final;
+    void _rebuildTransectsPhase1    (void) final;
+    void _recalcComplexDistance     (void) final;
+    void _recalcCameraShots         (void) final;
 
 private:
     enum CameraTriggerCode {
@@ -104,6 +97,7 @@ private:
     void _intersectLinesWithRect(const QList<QLineF>& lineList, const QRectF& boundRect, QList<QLineF>& resultLines);
     void _intersectLinesWithPolygon(const QList<QLineF>& lineList, const QPolygonF& polygon, QList<QLineF>& resultLines);
     void _adjustLineDirection(const QList<QLineF>& lineList, QList<QLineF>& resultLines);
+    int _appendWaypointToMission(QList<MissionItem*>& items, int seqNum, QGeoCoordinate& coord, CameraTriggerCode cameraTrigger, QObject* missionItemParent);
     bool _nextTransectCoord(const QList<QGeoCoordinate>& transectPoints, int pointIndex, QGeoCoordinate& coord);
     bool _appendMissionItemsWorker(QList<MissionItem*>& items, QObject* missionItemParent, int& seqNum, bool hasRefly, bool buildRefly);
     void _optimizeTransectsForShortestDistance(const QGeoCoordinate& distanceCoord, QList<QList<QGeoCoordinate>>& transects);
@@ -115,6 +109,8 @@ private:
     void _adjustTransectsToEntryPointLocation(QList<QList<QGeoCoordinate>>& transects);
     bool _gridAngleIsNorthSouthTransects();
     double _clampGridAngle90(double gridAngle);
+    void _buildAndAppendMissionItems(QList<MissionItem*>& items, QObject* missionItemParent);
+    void _appendLoadedMissionItems  (QList<MissionItem*>& items, QObject* missionItemParent);
     bool _imagesEverywhere(void) const;
     bool _triggerCamera(void) const;
     bool _hasTurnaround(void) const;
@@ -122,7 +118,7 @@ private:
     bool _hoverAndCaptureEnabled(void) const;
     bool _loadV3(const QJsonObject& complexObject, int sequenceNumber, QString& errorString);
     bool _loadV4V5(const QJsonObject& complexObject, int sequenceNumber, QString& errorString, int version, bool forPresets);
-    void _saveCommon(QJsonObject& complexObject);
+    void _saveWorker(QJsonObject& complexObject);
     void _rebuildTransectsPhase1Worker(bool refly);
     void _rebuildTransectsPhase1WorkerSinglePolygon(bool refly);
     void _rebuildTransectsPhase1WorkerSplitPolygons(bool refly);
@@ -171,4 +167,7 @@ private:
     static const char* _jsonV3CameraOrientationLandscapeKey;
     static const char* _jsonV3FixedValueIsAltitudeKey;
     static const char* _jsonV3Refly90DegreesKey;
+
+
+    static const int _hoverAndCaptureDelaySeconds = 4;
 };

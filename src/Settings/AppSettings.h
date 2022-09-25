@@ -1,4 +1,4 @@
-/***************_qgcTranslatorSourceCode***********************************************
+/****************************************************************************
  *
  * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
@@ -26,13 +26,13 @@ public:
 
     DEFINE_SETTING_NAME_GROUP()
 
-    DEFINE_SETTINGFACT(offlineEditingFirmwareClass)
-    DEFINE_SETTINGFACT(offlineEditingVehicleClass)
+    DEFINE_SETTINGFACT(offlineEditingFirmwareType)
+    DEFINE_SETTINGFACT(offlineEditingVehicleType)
     DEFINE_SETTINGFACT(offlineEditingCruiseSpeed)
     DEFINE_SETTINGFACT(offlineEditingHoverSpeed)
     DEFINE_SETTINGFACT(offlineEditingAscentSpeed)
     DEFINE_SETTINGFACT(offlineEditingDescentSpeed)
-    DEFINE_SETTINGFACT(batteryPercentRemainingAnnounce) // Important: This is only used to calculate battery swaps
+    DEFINE_SETTINGFACT(batteryPercentRemainingAnnounce)
     DEFINE_SETTINGFACT(defaultMissionItemAltitude)
     DEFINE_SETTINGFACT(telemetrySave)
     DEFINE_SETTINGFACT(telemetrySaveNotArmed)
@@ -44,28 +44,21 @@ public:
     DEFINE_SETTINGFACT(indoorPalette)
     DEFINE_SETTINGFACT(showLargeCompass)
     DEFINE_SETTINGFACT(savePath)
+    DEFINE_SETTINGFACT(autoLoadMissions)
     DEFINE_SETTINGFACT(useChecklist)
     DEFINE_SETTINGFACT(enforceChecklist)
     DEFINE_SETTINGFACT(mapboxToken)
-    DEFINE_SETTINGFACT(mapboxAccount)
-    DEFINE_SETTINGFACT(mapboxStyle)
     DEFINE_SETTINGFACT(esriToken)
-    DEFINE_SETTINGFACT(customURL)
-    DEFINE_SETTINGFACT(vworldToken)
     DEFINE_SETTINGFACT(defaultFirmwareType)
     DEFINE_SETTINGFACT(gstDebugLevel)
     DEFINE_SETTINGFACT(followTarget)
     DEFINE_SETTINGFACT(enableTaisync)
     DEFINE_SETTINGFACT(enableTaisyncVideo)
     DEFINE_SETTINGFACT(enableMicrohard)
-    DEFINE_SETTINGFACT(qLocaleLanguage)
+    DEFINE_SETTINGFACT(language)
     DEFINE_SETTINGFACT(disableAllPersistence)
     DEFINE_SETTINGFACT(usePairing)
     DEFINE_SETTINGFACT(saveCsvTelemetry)
-    DEFINE_SETTINGFACT(firstRunPromptIdsShown)
-    DEFINE_SETTINGFACT(forwardMavlink)
-    DEFINE_SETTINGFACT(forwardMavlinkHostName)
-
 
     // Although this is a global setting it only affects ArduPilot vehicle since PX4 automatically starts the stream from the vehicle side
     DEFINE_SETTINGFACT(apmStartMavlinkStreams)
@@ -75,7 +68,6 @@ public:
     Q_PROPERTY(QString telemetrySavePath    READ telemetrySavePath  NOTIFY savePathsChanged)
     Q_PROPERTY(QString logSavePath          READ logSavePath        NOTIFY savePathsChanged)
     Q_PROPERTY(QString videoSavePath        READ videoSavePath      NOTIFY savePathsChanged)
-    Q_PROPERTY(QString photoSavePath        READ photoSavePath      NOTIFY savePathsChanged)
     Q_PROPERTY(QString crashSavePath        READ crashSavePath      NOTIFY savePathsChanged)
 
     Q_PROPERTY(QString planFileExtension        MEMBER planFileExtension        CONSTANT)
@@ -92,13 +84,10 @@ public:
     QString telemetrySavePath   ();
     QString logSavePath         ();
     QString videoSavePath       ();
-    QString photoSavePath       ();
     QString crashSavePath       ();
 
-    // Helper methods for working with firstRunPromptIds QVariant settings string list
-    static QList<int> firstRunPromptsIdsVariantToList   (const QVariant& firstRunPromptIds);
-    static QVariant   firstRunPromptsIdsListToVariant   (const QList<int>& rgIds);
-    Q_INVOKABLE void  firstRunPromptIdsMarkIdAsShown    (int id);
+    static MAV_AUTOPILOT    offlineEditingFirmwareTypeFromFirmwareType  (MAV_AUTOPILOT firmwareType);
+    static MAV_TYPE         offlineEditingVehicleTypeFromVehicleType    (MAV_TYPE vehicleType);
 
     // Application wide file extensions
     static const char* parameterFileExtension;
@@ -118,14 +107,7 @@ public:
     static const char* missionDirectory;
     static const char* logDirectory;
     static const char* videoDirectory;
-    static const char* photoDirectory;
     static const char* crashDirectory;
-
-    // Returns the current qLocaleLanguage setting bypassing the standard SettingsGroup path. This should only be used
-    // by QGCApplication::setLanguage to query the language setting as early in the boot process as possible.
-    // Specfically prior to any JSON files being loaded such that JSON file can be translated. Also since this
-    // is a one-off mechanism custom build overrides for language are not currently supported.
-    static QLocale::Language _qLocaleLanguageID(void);
 
 signals:
     void savePathsChanged();
@@ -133,9 +115,9 @@ signals:
 private slots:
     void _indoorPaletteChanged();
     void _checkSavePathDirectories();
-    void _qLocaleLanguageChanged();
+    void _languageChanged();
 
 private:
-    static QList<int> _rgReleaseLanguages;
-    static QList<int> _rgPartialLanguages;
+    QTranslator _QGCTranslator;
+
 };

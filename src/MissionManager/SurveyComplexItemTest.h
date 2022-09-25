@@ -9,16 +9,15 @@
 
 #pragma once
 
-#include "TransectStyleComplexItemTestBase.h"
+#include "UnitTest.h"
+#include "TCPLink.h"
 #include "MultiSignalSpy.h"
 #include "SurveyComplexItem.h"
-#include "PlanMasterController.h"
-#include "PlanViewSettings.h"
 
 #include <QGeoCoordinate>
 
 /// Unit test for SurveyComplexItem
-class SurveyComplexItemTest : public TransectStyleComplexItemTestBase
+class SurveyComplexItemTest : public UnitTest
 {
     Q_OBJECT
     
@@ -29,30 +28,16 @@ protected:
     void init(void) final;
     void cleanup(void) final;
     
-#if 1
 private slots:
     void _testDirty(void);
     void _testGridAngle(void);
     void _testEntryLocation(void);
-    void _testItemGeneration(void);
     void _testItemCount(void);
-    void _testHoverCaptureItemGeneration(void);
-#else
-    // Handy mechanism to to a single test
-private slots:
-    void _testItemCount(void);
-private:
-    void _testDirty(void);
-    void _testGridAngle(void);
-    void _testEntryLocation(void);
-    void _testItemGeneration(void);
-    void _testHoverCaptureItemGeneration(void);
-#endif
 
 private:
-    double          _clampGridAngle180(double gridAngle);
-    QList<MAV_CMD>  _createExpectedCommands(bool hasTurnaround, bool useConditionGate);
-    void            _testItemGenerationWorker(bool imagesInTurnaround, bool hasTurnaround, bool useConditionGate, const QList<MAV_CMD>& expectedCommands);
+
+    double _clampGridAngle180(double gridAngle);
+    void _setPolygon(void);
 
     // SurveyComplexItem signals
 
@@ -78,10 +63,9 @@ private:
     static const size_t _cSurveySignals = surveyMaxSignalIndex;
     const char*         _rgSurveySignals[_cSurveySignals];
 
-    MultiSignalSpy*         _multiSpy =             nullptr;
-    SurveyComplexItem*      _surveyItem =           nullptr;
-    QGCMapPolygon*          _mapPolygon =           nullptr;
-    QList<QGeoCoordinate>   _polyVertices;
-
-    static const int _expectedTransectCount = 2;
+    Vehicle*                _offlineVehicle;
+    MultiSignalSpy*         _multiSpy;
+    SurveyComplexItem*      _surveyItem;
+    QGCMapPolygon*          _mapPolygon;
+    QList<QGeoCoordinate>   _polyPoints;
 };

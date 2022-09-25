@@ -12,7 +12,7 @@
 #include "JsonHelper.h"
 #include "QGCQGeoCoordinate.h"
 #include "QGCApplication.h"
-#include "KMLHelper.h"
+#include "KMLFileHelper.h"
 
 #include <QGeoRectangle>
 #include <QDebug>
@@ -243,11 +243,6 @@ void QGCMapPolyline::removeVertex(int vertexIndex)
 
     QObject* coordObj = _polylineModel.removeAt(vertexIndex);
     coordObj->deleteLater();
-    if(vertexIndex == _selectedVertexIndex) {
-        selectVertex(-1);
-    } else if (vertexIndex < _selectedVertexIndex) {
-        selectVertex(_selectedVertexIndex - 1);
-    } // else do nothing - keep current selected vertex
 
     _polylinePath.removeAt(vertexIndex);
     emit pathChanged();
@@ -334,8 +329,7 @@ QList<QGeoCoordinate> QGCMapPolyline::offsetPolyline(double distance)
         // Intersect the offset edges to generate new central vertices
         QPointF  newVertex;
         for (int i=1; i<rgOffsetEdges.count(); i++) {
-            auto intersect = rgOffsetEdges[i - 1].intersects(rgOffsetEdges[i], &newVertex);
-            if (intersect == QLineF::NoIntersection) {
+            if (rgOffsetEdges[i - 1].intersect(rgOffsetEdges[i], &newVertex) == QLineF::NoIntersection) {
                 // Two lines are colinear
                 newVertex = rgOffsetEdges[i].p2();
             }
@@ -358,8 +352,8 @@ bool QGCMapPolyline::loadKMLFile(const QString& kmlFile)
 
     QString errorString;
     QList<QGeoCoordinate> rgCoords;
-    if (!KMLHelper::loadPolylineFromFile(kmlFile, rgCoords, errorString)) {
-        qgcApp()->showAppMessage(errorString);
+    if (!KMLFileHelper::loadPolylineFromFile(kmlFile, rgCoords, errorString)) {
+        qgcApp()->showMessage(errorString);
         return false;
     }
 
@@ -436,30 +430,4 @@ void QGCMapPolyline::_endResetIfNotActive(void)
     if (!_resetActive) {
         endReset();
     }
-}
-
-void QGCMapPolyline::setTraceMode(bool traceMode)
-{
-    if (traceMode != _traceMode) {
-        _traceMode = traceMode;
-        emit traceModeChanged(traceMode);
-    }
-}
-
-void QGCMapPolyline::selectVertex(int index)
-{
-    if(index == _selectedVertexIndex) return;   // do nothing
-
-    if(-1 <= index && index < count()) {
-        _selectedVertexIndex = index;
-    } else {
-        if (!qgcApp()->runningUnitTests()) {
-            qCWarning(ParameterManagerLog)
-                    << QString("QGCMapPolyline: Selected vertex index (%1) is out of bounds! "
-                               "Polyline vertices indexes range is [%2..%3].").arg(index).arg(0).arg(count()-1);
-        }
-        _selectedVertexIndex = -1;   // deselect vertex
-    }
-
-    emit selectedVertexChanged(_selectedVertexIndex);
 }

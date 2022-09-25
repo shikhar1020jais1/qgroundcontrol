@@ -7,7 +7,8 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef PX4FirmwarePluginFactory_H
+#define PX4FirmwarePluginFactory_H
 
 #include "FirmwarePlugin.h"
 
@@ -20,9 +21,11 @@ class PX4FirmwarePluginFactory : public FirmwarePluginFactory
 public:
     PX4FirmwarePluginFactory(void);
 
-    QList<QGCMAVLink::FirmwareClass_t>  supportedFirmwareClasses(void) const final;
-    FirmwarePlugin*                     firmwarePluginForAutopilot  (MAV_AUTOPILOT autopilotType, MAV_TYPE vehicleType) final;
+    QList<MAV_AUTOPILOT>    supportedFirmwareTypes      (void) const final;
+    FirmwarePlugin*         firmwarePluginForAutopilot  (MAV_AUTOPILOT autopilotType, MAV_TYPE vehicleType) final;
 
 private:
     PX4FirmwarePlugin*  _pluginInstance;
 };
+
+#endif

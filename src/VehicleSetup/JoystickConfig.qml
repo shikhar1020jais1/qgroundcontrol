@@ -62,24 +62,16 @@ SetupPage {
                 id:             bar
                 width:          parent.width
                 Component.onCompleted: {
-                    currentIndex = _activeJoystick && _activeJoystick.calibrated ? 0 : 2
+                    currentIndex = 0
                 }
                 anchors.top:    parent.top
-                QGCTabButton {
-                    text:       qsTr("General")
-                }
+
                 QGCTabButton {
                     text:       qsTr("Button Assigment")
                 }
-                QGCTabButton {
-                    text:       qsTr("Calibration")
-                }
-                QGCTabButton {
-                    text:       qsTr("Advanced")
-                }
             }
 
-            property var pages:  ["JoystickConfigGeneral.qml", "JoystickConfigButtons.qml", "JoystickConfigCalibration.qml", "JoystickConfigAdvanced.qml"]
+            property var pages:  [ "JoystickConfigButtons.qml"]
 
             Loader {
                 id:             joyLoader
@@ -90,5 +82,4 @@ SetupPage {
         }
     }
 }
-
 

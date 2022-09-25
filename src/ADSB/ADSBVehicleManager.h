@@ -29,7 +29,7 @@ public:
     ~ADSBTCPLink();
 
 signals:
-    void adsbVehicleUpdate(const ADSBVehicle::ADSBVehicleInfo_t vehicleInfo);
+    void adsbVehicleUpdate(const ADSBVehicle::VehicleInfo_t vehicleInfo);
     void error(const QString errorMsg);
 
 protected:
@@ -45,9 +45,6 @@ private:
     QString         _hostAddress;
     int             _port;
     QTcpSocket*     _socket =   nullptr;
-    void _parseAndEmitCallsign(ADSBVehicle::ADSBVehicleInfo_t &adsbInfo, QStringList values);
-    void _parseAndEmitLocation(ADSBVehicle::ADSBVehicleInfo_t &adsbInfo, QStringList values);
-    void _parseAndEmitHeading(ADSBVehicle::ADSBVehicleInfo_t &adsbInfo, QStringList values);
 };
 
 class ADSBVehicleManager : public QGCTool {
@@ -64,7 +61,7 @@ public:
     void setToolbox(QGCToolbox* toolbox) final;
 
 public slots:
-    void adsbVehicleUpdate  (const ADSBVehicle::ADSBVehicleInfo_t vehicleInfo);
+    void adsbVehicleUpdate  (const ADSBVehicle::VehicleInfo_t vehicleInfo);
     void _tcpError          (const QString errorMsg);
 
 private slots:

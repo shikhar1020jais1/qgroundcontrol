@@ -1,8 +1,8 @@
 pragma Singleton
 
-import QtQuick          2.12
+import QtQuick 2.3
 import QtQuick.Controls 1.2
-import QtQuick.Window   2.2
+import QtQuick.Window 2.2
 
 import QGroundControl                       1.0
 import QGroundControl.ScreenToolsController 1.0
@@ -43,12 +43,6 @@ Item {
     /// your ui elements will reposition themselves appropriately on varying screen sizes and resolutions.
     property real defaultFontPixelWidth:    10
 
-    /// QFontMetrics::descent for default font at default point size
-    property real defaultFontDescent:       0
-
-    /// The default amount of space in between controls in a dialog
-    property real defaultDialogControlSpacing: defaultFontPixelHeight / 2
-
     property real smallFontPointSize:       10
     property real mediumFontPointSize:      10
     property real largeFontPointSize:       10
@@ -81,7 +75,6 @@ Item {
     property bool isWindows:                        ScreenToolsController.isWindows
     property bool isDebug:                          ScreenToolsController.isDebug
     property bool isMac:                            ScreenToolsController.isMacOS
-    property bool isLinux:                          ScreenToolsController.isLinux
     property bool isTinyScreen:                     (Screen.width / realPixelDensity) < 120 // 120mm
     property bool isShortScreen:                    ((Screen.height / realPixelDensity) < 120) || (ScreenToolsController.isMobile && ((Screen.height / Screen.width) < 0.6))
     property bool isHugeScreen:                     (Screen.width / realPixelDensity) >= (23.5 * 25.4) // 27" monitor
@@ -112,7 +105,7 @@ Item {
     */
     Connections {
         target: QGroundControl.settingsManager.appSettings.appFontPointSize
-        function onValueChanged() {
+        onValueChanged: {
             _setBasePointSize(QGroundControl.settingsManager.appSettings.appFontPointSize.value)
         }
     }
@@ -141,7 +134,6 @@ Item {
         defaultFontPointSize    = pointSize
         defaultFontPixelHeight  = Math.round(_textMeasure.fontHeight/2.0)*2
         defaultFontPixelWidth   = Math.round(_textMeasure.fontWidth/2.0)*2
-        defaultFontDescent      = ScreenToolsController.defaultFontDescent(defaultFontPointSize)
         smallFontPointSize      = defaultFontPointSize  * _screenTools.smallFontPointRatio
         mediumFontPointSize     = defaultFontPointSize  * _screenTools.mediumFontPointRatio
         largeFontPointSize      = defaultFontPointSize  * _screenTools.largeFontPointRatio

@@ -150,7 +150,7 @@ MAVLinkLogProcessor::valid()
 bool
 MAVLinkLogProcessor::create(MAVLinkLogManager* manager, const QString path, uint8_t id)
 {
-    _fileName.asprintf("%s/%03d-%s%s",
+    _fileName.sprintf("%s/%03d-%s%s",
                       path.toLatin1().data(),
                       id,
                       QDateTime::currentDateTime().toString("yyyy-MM-dd-hh-mm-ss-zzz").toLocal8Bit().data(),
@@ -742,7 +742,9 @@ MAVLinkLogManager::_sendLog(const QString& logFile)
     multiPart->append(logPart);
     file->setParent(multiPart);
     QNetworkRequest request(_uploadURL);
-    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, true);
+#if QT_VERSION > 0x050600
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+#endif
     QNetworkReply* reply = _nam->post(request, multiPart);
     connect(reply, &QNetworkReply::finished,  this, &MAVLinkLogManager::_uploadFinished);
     connect(this, &MAVLinkLogManager::abortUpload, reply, &QNetworkReply::abort);

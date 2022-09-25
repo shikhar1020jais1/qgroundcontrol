@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 
-# git tag is in the form vX.Y.Z for builds from tagged commit 
-# git tag is in the form vX.Y.Z-1234-gSHA for builds from non-tagged commit 
-
 # Strip the 'v' from the beginning of the tag
 VERSIONNAME=`git describe --always --tags | sed -e 's/^v//'`
 echo "tag $VERSIONNAME"
 
 # Change all occurences of '-' in tag to '.' and separate into parts
 IFS=. read major minor patch dev sha <<<"${VERSIONNAME//-/.}"
+
+major=4
+minor=0
+patch=8
+dev=0
+sha=$VERSIONNAME
 echo "major:$major minor:$minor patch:$patch dev:$dev sha:$sha"
 
 # Max Android version code is 2100000000. Version codes must increase with each release and the 
@@ -38,37 +41,37 @@ VERSIONCODE=$(($(($minor*100000)) + $VERSIONCODE))
 VERSIONCODE=$(($(($patch*1000)) + $VERSIONCODE))
 VERSIONCODE=$(($(($dev)) + $VERSIONCODE))
 
-# The 32 bit and 64 bit APKs each need there own version code unique version code
+# The 32 bit and 64 bit APKs each need there own version code.
 if [ "$1" = "32" ]; then
-    VERSIONCODE=34$VERSIONCODE
+    VERSIONCODE=33$VERSIONCODE
 else
-    VERSIONCODE=66$VERSIONCODE
+    VERSIONCODE=65$VERSIONCODE
 fi
 
 MANIFEST_FILE=android/AndroidManifest.xml
 
 # manifest package
 if [ "$2" = "master" ]; then
-	echo "Adjusting package name for daily build"
 	QGC_PKG_NAME="org.mavlink.qgroundcontrolbeta"
 	sed -i -e 's/package *= *"[^"]*"/package="'$QGC_PKG_NAME'"/' $MANIFEST_FILE
+	echo "Android package name: $QGC_PKG_NAME"
 fi
 
 # android:versionCode
 if [ -n "$VERSIONCODE" ]; then
-	echo "Android versionCode: ${VERSIONCODE}"
 	sed -i -e "s/android:versionCode=\"[0-9][0-9]*\"/android:versionCode=\"$VERSIONCODE\"/" $MANIFEST_FILE
+	echo "Android version: ${VERSIONCODE}"
 else
-	echo "Error: versionCode empty"
-	exit 1
+	echo "Error versionCode empty"
+	exit 0 # don't cause the build to fail
 fi
 
 # android:versionName
 if [ -n "$VERSIONNAME" ]; then
-	echo "Android versionName: ${VERSIONNAME}"
 	sed -i -e 's/versionName *= *"[^"]*"/versionName="'$VERSIONNAME'"/' $MANIFEST_FILE
+	echo "Android name: ${VERSIONNAME}"
 else
-	echo "Error: versionName empty"
-	exit 1
+	echo "Error versionName empty"
+	exit 0 # don't cause the build to fail
 fi
 

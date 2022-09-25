@@ -51,7 +51,6 @@ void QGCPalette::_buildMap()
     //                                      Light                 Dark
     //                                      Disabled   Enabled    Disabled   Enabled
     DECLARE_QGC_COLOR(window,               "#ffffff", "#ffffff", "#222222", "#222222")
-    DECLARE_QGC_COLOR(windowShadeLight,     "#909090", "#828282", "#707070", "#626262")
     DECLARE_QGC_COLOR(windowShade,          "#d9d9d9", "#d9d9d9", "#333333", "#333333")
     DECLARE_QGC_COLOR(windowShadeDark,      "#bdbdbd", "#bdbdbd", "#282828", "#282828")
     DECLARE_QGC_COLOR(text,                 "#9d9d9d", "#000000", "#707070", "#ffffff")
@@ -77,24 +76,16 @@ void QGCPalette::_buildMap()
     DECLARE_QGC_COLOR(alertBorder,          "#808080", "#808080", "#808080", "#808080")
     DECLARE_QGC_COLOR(alertText,            "#000000", "#000000", "#000000", "#000000")
     DECLARE_QGC_COLOR(missionItemEditor,    "#585858", "#dbfef8", "#585858", "#585d83")
-    DECLARE_QGC_COLOR(toolStripHoverColor,  "#585858", "#9D9D9D", "#585858", "#585d83")
+    DECLARE_QGC_COLOR(hoverColor,           "#585858", "#dbfef8", "#585858", "#585d83")
     DECLARE_QGC_COLOR(statusFailedText,     "#9d9d9d", "#000000", "#707070", "#ffffff")
     DECLARE_QGC_COLOR(statusPassedText,     "#9d9d9d", "#000000", "#707070", "#ffffff")
     DECLARE_QGC_COLOR(statusPendingText,    "#9d9d9d", "#000000", "#707070", "#ffffff")
-    DECLARE_QGC_COLOR(toolbarBackground,    "#ffffff", "#ffffff", "#222222", "#222222")
 
-    // Colors not affecting by theming
-    //                                              Disabled    Enabled
-    DECLARE_QGC_NONTHEMED_COLOR(brandingPurple,     "#4A2C6D", "#4A2C6D")
-    DECLARE_QGC_NONTHEMED_COLOR(brandingBlue,       "#48D6FF", "#6045c5")
-    DECLARE_QGC_NONTHEMED_COLOR(toolStripFGColor,   "#707070", "#ffffff")
-
-    // Colors not affecting by theming or enable/disable
-    DECLARE_QGC_SINGLE_COLOR(mapWidgetBorderLight,          "#ffffff")
-    DECLARE_QGC_SINGLE_COLOR(mapWidgetBorderDark,           "#000000")
-    DECLARE_QGC_SINGLE_COLOR(mapMissionTrajectory,          "#be781c")
-    DECLARE_QGC_SINGLE_COLOR(surveyPolygonInterior,         "green")
-    DECLARE_QGC_SINGLE_COLOR(surveyPolygonTerrainCollision, "red")
+    // Colors are not affecting by theming
+    DECLARE_QGC_COLOR(mapWidgetBorderLight, "#ffffff", "#ffffff", "#ffffff", "#ffffff")
+    DECLARE_QGC_COLOR(mapWidgetBorderDark,  "#000000", "#000000", "#000000", "#000000")
+    DECLARE_QGC_COLOR(brandingPurple,       "#4A2C6D", "#4A2C6D", "#4A2C6D", "#4A2C6D")
+    DECLARE_QGC_COLOR(brandingBlue,         "#48D6FF", "#6045c5", "#48D6FF", "#6045c5")
 }
 
 void QGCPalette::setColorGroupEnabled(bool enabled)

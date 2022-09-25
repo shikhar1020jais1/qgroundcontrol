@@ -35,7 +35,7 @@ SetupPage {
 
             QGCPalette { id: palette; colorGroupEnabled: true }
 
-            property bool _oldFW:               !(globals.activeVehicle.firmwareMajorVersion > 3 || globals.activeVehicle.firmwareMinorVersion > 5 || globals.activeVehicle.firmwarePatchVersion >= 2)
+            property bool _oldFW:               !(activeVehicle.firmwareMajorVersion > 3 || activeVehicle.firmwareMinorVersion > 5 || activeVehicle.firmwarePatchVersion >= 2)
 
             property Fact _mountRetractX:       controller.getParameterFact(-1, "MNT_RETRACT_X")
             property Fact _mountRetractY:       controller.getParameterFact(-1, "MNT_RETRACT_Y")
@@ -70,8 +70,6 @@ SetupPage {
             property Fact _rc12Function:        controller.getParameterFact(-1, "r.SERVO12_FUNCTION")
             property Fact _rc13Function:        controller.getParameterFact(-1, "r.SERVO13_FUNCTION")
             property Fact _rc14Function:        controller.getParameterFact(-1, "r.SERVO14_FUNCTION")
-            property Fact _rc15Function:        controller.getParameterFact(-1, "r.SERVO15_FUNCTION")
-            property Fact _rc16Function:        controller.getParameterFact(-1, "r.SERVO16_FUNCTION")
 
             // These enable/disable the options for setting up each axis
             property bool _tiltEnabled:         false
@@ -89,7 +87,7 @@ SetupPage {
             readonly property int   _rcFunctionMountTilt:           7
             readonly property int   _rcFunctionMountRoll:           8
             readonly property int   _firstGimbalOutChannel:         5
-            readonly property int   _lastGimbalOutChannel:          16
+            readonly property int   _lastGimbalOutChannel:          14
             readonly property int   _mountDefaultModeRCTargetting:  3
 
             Component.onCompleted: {
@@ -163,8 +161,6 @@ SetupPage {
             Connections { target: _rc12Function; onValueChanged: calcGimbalOutValues() }
             Connections { target: _rc13Function; onValueChanged: calcGimbalOutValues() }
             Connections { target: _rc14Function; onValueChanged: calcGimbalOutValues() }
-            Connections { target: _rc15Function; onValueChanged: calcGimbalOutValues() }
-            Connections { target: _rc16Function; onValueChanged: calcGimbalOutValues() }
 
             // Whenever an MNT_RC_IN_* setting is changed make sure to turn on RC targeting
             Connections {
@@ -195,18 +191,16 @@ SetupPage {
                 ListElement { text: qsTr("Channel 12"); value: 12 }
                 ListElement { text: qsTr("Channel 13"); value: 13 }
                 ListElement { text: qsTr("Channel 14"); value: 14 }
-                ListElement { text: qsTr("Channel 15"); value: 15 }
-                ListElement { text: qsTr("Channel 16"); value: 16 }
             }
 
             QGCCheckBox {
                 id:     _allVisible
-                text:   qsTr("Show all settings (advanced)")
+                text:   "Show all settings (advanced)"
             }
 
             QGCLabel {
                 visible:     !_oldFW
-                text:        qsTr("Camera mount tilt speed:")
+                text:        "Camera mount tilt speed:"
                 font.family: ScreenTools.demiboldFontFamily
             }
 

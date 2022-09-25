@@ -1,17 +1,13 @@
-{
-    "version":      1,
-    "fileType":  "FactMetaData",
-    "QGC.MetaData.Facts":
 [
 {
     "name":             "connected",
-    "shortDesc": "Connected",
+    "shortDescription": "Connected",
     "type":             "bool",
     "default":          false
 },
 {
     "name":             "currentAccuracy",
-    "shortDesc": "Current Survey-In Accuracy",
+    "shortDescription": "Current Survey-In Accuracy",
     "type":             "double",
     "decimalPlaces":    1,
     "units":            "m",
@@ -19,28 +15,28 @@
 },
 {
     "name":             "currentLatitude",
-    "shortDesc": "Current Survey-In Latitude",
+    "shortDescription": "Current Survey-In Latitude",
     "type":             "double",
     "decimalPlaces":    7,
     "default":          null
 },
 {
     "name":             "currentLongitude",
-    "shortDesc": "Current Survey-In Longitude",
+    "shortDescription": "Current Survey-In Longitude",
     "type":             "double",
     "decimalPlaces":    7,
     "default":          null
 },
 {
     "name":             "currentAltitude",
-    "shortDesc": "Current Survey-In Altitude",
+    "shortDescription": "Current Survey-In Altitude",
     "type":             "float",
     "decimalPlaces":    2,
     "default":          null
 },
 {
     "name":             "currentDuration",
-    "shortDesc": "Current Survey-In Duration",
+    "shortDescription": "Current Survey-In Duration",
     "type":             "double",
     "decimalPlaces":    0,
     "units":            "s",
@@ -48,21 +44,20 @@
 },
 {
     "name":             "valid",
-    "shortDesc": "Survey-In Valid",
+    "shortDescription": "Survey-In Valid",
     "type":             "bool",
     "default":          false
 },
 {
     "name":             "active",
-    "shortDesc": "Survey-In Active",
+    "shortDescription": "Survey-In Active",
     "type":             "bool",
     "default":          false
 },
 {
     "name":             "numSatellites",
-    "shortDesc": "Number of Satellites",
+    "shortDescription": "Number of Satellites",
     "type":             "int32",
     "default":          0
 }
 ]
-}

@@ -11,6 +11,8 @@
 #include <QString>
 
 static const quint32 AVERAGE_AIRMAP_ELEV_SIZE = 2786;
+//-----------------------------------------------------------------------------
+static const double srtm1TileSize = 0.01;
 
 class ElevationProvider : public MapProvider {
     Q_OBJECT

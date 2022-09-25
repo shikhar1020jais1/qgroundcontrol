@@ -97,6 +97,27 @@ SetupPage {
                 }
             }
 
+            Component {
+                id: applyRestartDialogComponent
+
+                QGCViewDialog {
+                    id: applyRestartDialog
+
+                    function accept() {
+                        controller.changeAutostart()
+                        applyRestartDialog.hideDialog()
+                    }
+
+                    QGCLabel {
+                        anchors.fill:   parent
+                        wrapMode:       Text.WordWrap
+                        text:           qsTr("Clicking “Apply” will save the changes you have made to your airframe configuration.<br><br>\
+All vehicle parameters other than Radio Calibration will be reset.<br><br>\
+Your vehicle will also be restarted in order to complete the process.")
+                    }
+                }
+            }
+
             Item {
                 id:             helpApplyRow
                 anchors.left:   parent.left
@@ -109,7 +130,7 @@ SetupPage {
                     text:           (controller.currentVehicleName != "" ?
                                          qsTr("You've connected a %1.").arg(controller.currentVehicleName) :
                                          qsTr("Airframe is not set.")) +
-                                    qsTr("To change this configuration, select the desired airframe below then click 'Apply and Restart'.")
+                                    qsTr("To change this configuration, select the desired airframe below then click “Apply and Restart”.")
                     font.family:    ScreenTools.demiboldFontFamily
                     wrapMode:       Text.WordWrap
                 }
@@ -118,13 +139,8 @@ SetupPage {
                     id:             applyButton
                     anchors.right:  parent.right
                     text:           qsTr("Apply and Restart")
-                    onClicked:      mainWindow.showMessageDialog(qsTr("Apply and Restart"),
-                                                                 qsTr("Clicking 'Apply' will save the changes you have made to your airframe configuration.<br><br>\
-                                                                        All vehicle parameters other than Radio Calibration will be reset.<br><br>\
-                                                                        Your vehicle will also be restarted in order to complete the process."),
-                                                                 StandardButton.Apply | StandardButton.Cancel,
-                                                                 function() { controller.changeAutostart() })
 
+                    onClicked:      mainWindow.showComponentDialog(applyRestartDialogComponent, qsTr("Apply and Restart"), mainWindow.showDialogDefaultWidth, StandardButton.Apply | StandardButton.Cancel)
                 }
             }
 

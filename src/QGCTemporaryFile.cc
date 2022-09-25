@@ -18,7 +18,6 @@
 #include "QGCTemporaryFile.h"
 
 #include <QDir>
-#include <QRandomGenerator>
 #include <QStandardPaths>
 
 QGCTemporaryFile::QGCTemporaryFile(const QString& fileTemplate, QObject* parent) :
@@ -28,43 +27,30 @@ QGCTemporaryFile::QGCTemporaryFile(const QString& fileTemplate, QObject* parent)
 
 }
 
-QGCTemporaryFile::~QGCTemporaryFile()
-{
-    if (_autoRemove) {
-        remove();
-    }
-}
-
 bool QGCTemporaryFile::open(QFile::OpenMode openMode)
 {
-    setFileName(_newTempFileFullyQualifiedName(_template));
-    
-    return QFile::open(openMode);
-}
-
-QString QGCTemporaryFile::_newTempFileFullyQualifiedName(const QString& fileTemplate)
-{
-    QString nameTemplate = fileTemplate;
     QDir tempDir(QStandardPaths::writableLocation(QStandardPaths::TempLocation));
-
+    
     // Generate unique, non-existing filename
-
+    
     static const char rgDigits[] = "0123456789";
-
+    
     QString tempFilename;
-
+    
     do {
         QString uniqueStr;
         for (int i=0; i<6; i++) {
-            uniqueStr += rgDigits[QRandomGenerator::global()->generate() % 10];
+            uniqueStr += rgDigits[qrand() % 10];
         }
-
-        if (fileTemplate.contains("XXXXXX")) {
-            tempFilename = nameTemplate.replace("XXXXXX", uniqueStr, Qt::CaseSensitive);
+        
+        if (_template.contains("XXXXXX")) {
+            tempFilename = _template.replace("XXXXXX", uniqueStr, Qt::CaseSensitive);
         } else {
-            tempFilename = nameTemplate + uniqueStr;
+            tempFilename = _template + uniqueStr;
         }
     } while (tempDir.exists(tempFilename));
 
-    return tempDir.filePath(tempFilename);
+    setFileName(tempDir.filePath(tempFilename));
+    
+    return QFile::open(openMode);
 }

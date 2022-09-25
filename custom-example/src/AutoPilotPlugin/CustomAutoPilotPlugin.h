@@ -15,17 +15,15 @@
 #include "PX4AutoPilotPlugin.h"
 #include "Vehicle.h"
 
+/// Custom overrides from standard PX4AutoPilotPlugin implementation
 class CustomAutoPilotPlugin : public PX4AutoPilotPlugin
 {
     Q_OBJECT
 public:
     CustomAutoPilotPlugin(Vehicle* vehicle, QObject* parent);
-
-    const QVariantList& vehicleComponents() final;
-
+    const QVariantList& vehicleComponents() override;
 private slots:
     void         _advancedChanged        (bool advanced);
-
 private:
     QVariantList _components;
 

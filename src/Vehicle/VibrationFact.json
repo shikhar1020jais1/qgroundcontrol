@@ -1,40 +1,35 @@
-{
-    "version":      1,
-    "fileType":  "FactMetaData",
-    "QGC.MetaData.Facts":
 [
 {
     "name":             "xAxis",
-    "shortDesc": "Vibe xAxis",
+    "shortDescription": "Vibe xAxis",
     "type":             "double",
     "decimalPlaces":    1
 },
 {
     "name":             "yAxis",
-    "shortDesc": "Vibe yAxis",
+    "shortDescription": "Vibe yAxis",
     "type":             "double",
     "decimalPlaces":    1
 },
 {
     "name":             "zAxis",
-    "shortDesc": "Vibe zAxis",
+    "shortDescription": "Vibe zAxis",
     "type":             "double",
     "decimalPlaces":    1
 },
 {
     "name":             "clipCount1",
-    "shortDesc": "Clip Count (1)",
+    "shortDescription": "Clip Count (1)",
     "type":             "uint32"
 },
 {
     "name":             "clipCount2",
-    "shortDesc": "Clip Count (2)",
+    "shortDescription": "Clip Count (2)",
     "type":             "uint32"
 },
 {
     "name":             "clipCount3",
-    "shortDesc": "Clip Count (3)",
+    "shortDescription": "Clip Count (3)",
     "type":             "uint32"
 }
 ]
-}

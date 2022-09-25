@@ -38,7 +38,6 @@ MapQuickItem {
             showGimbalYaw:      !isNaN(missionItem.missionGimbalYaw)
             highlightSelected:  true
             onClicked:          _item.clicked()
-            opacity:            _item.opacity
 
             property bool _isCurrentItem:   missionItem ? missionItem.isCurrentItem || missionItem.hasCurrentChildItem : false
         }

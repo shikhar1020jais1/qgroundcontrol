@@ -49,18 +49,28 @@ Rectangle {
         flickableDirection: Flickable.VerticalFlick
         clip:               true
 
+        ExclusiveGroup { id: panelActionGroup }
+
         ColumnLayout {
             id:         buttonColumn
             spacing:    _verticalMargin
 
             property real _maxButtonWidth: 0
 
+            QGCLabel {
+                Layout.fillWidth:       true
+                text:                   qsTr("Application Settings")
+                wrapMode:               Text.WordWrap
+                horizontalAlignment:    Text.AlignHCenter
+                visible:                !ScreenTools.isShortScreen
+            }
+
             Repeater {
                 model:  QGroundControl.corePlugin.settingsPages
                 QGCButton {
                     height:             _buttonHeight
                     text:               modelData.title
-                    autoExclusive:      true
+                    exclusiveGroup:     panelActionGroup
                     Layout.fillWidth:   true
 
                     onClicked: {

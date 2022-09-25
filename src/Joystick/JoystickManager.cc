@@ -38,7 +38,6 @@ JoystickManager::~JoystickManager() {
     QMap<QString, Joystick*>::iterator i;
     for (i = _name2JoystickMap.begin(); i != _name2JoystickMap.end(); ++i) {
         qCDebug(JoystickManagerLog) << "Releasing joystick:" << i.key();
-        i.value()->stop();
         delete i.value();
     }
     qDebug() << "Done";
@@ -107,14 +106,14 @@ void JoystickManager::_setActiveJoystickFromSettings(void)
     }
 
     QSettings settings;
-
+    
     settings.beginGroup(_settingsGroup);
     QString name = settings.value(_settingsKeyActiveJoystick).toString();
-
+    
     if (name.isEmpty()) {
         name = _name2JoystickMap.first()->name();
     }
-
+    
     setActiveJoystick(_name2JoystickMap.value(name, _name2JoystickMap.first()));
     settings.setValue(_settingsKeyActiveJoystick, _activeJoystick->name());
 }
@@ -140,9 +139,9 @@ void JoystickManager::setActiveJoystick(Joystick* joystick)
     if (_activeJoystick) {
         _activeJoystick->stopPolling();
     }
-
+    
     _activeJoystick = joystick;
-
+    
     if (_activeJoystick != nullptr) {
         qCDebug(JoystickManagerLog) << "Set active:" << _activeJoystick->name();
 
@@ -157,11 +156,11 @@ void JoystickManager::setActiveJoystick(Joystick* joystick)
 QVariantList JoystickManager::joysticks(void)
 {
     QVariantList list;
-
+    
     for (const QString &name: _name2JoystickMap.keys()) {
         list += QVariant::fromValue(_name2JoystickMap[name]);
     }
-
+    
     return list;
 }
 
@@ -181,7 +180,7 @@ void JoystickManager::setActiveJoystickName(const QString& name)
         qCWarning(JoystickManagerLog) << "Set active not in map" << name;
         return;
     }
-
+    
     setActiveJoystick(_name2JoystickMap[name]);
 }
 

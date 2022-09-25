@@ -41,12 +41,12 @@ AirMapManager::AirMapManager(QGCApplication* app, QGCToolbox* toolbox)
     : AirspaceManager(app, toolbox)
     , _authStatus(Unknown)
 {
-    _logger = std::make_shared<services::Logger>();
-    services::register_types(); // TODO: still needed?
+    _logger = std::make_shared<qt::Logger>();
+    qt::register_types(); // TODO: still needed?
     _logger->logging_category().setEnabled(QtDebugMsg,   false);
     _logger->logging_category().setEnabled(QtInfoMsg,    false);
     _logger->logging_category().setEnabled(QtWarningMsg, false);
-    _dispatchingLogger = std::make_shared<services::DispatchingLogger>(_logger);
+    _dispatchingLogger = std::make_shared<qt::DispatchingLogger>(_logger);
     connect(&_shared, &AirMapSharedState::error, this, &AirMapManager::_error);
     connect(&_shared, &AirMapSharedState::authStatus, this, &AirMapManager::_authStatusChanged);
 }
@@ -89,7 +89,7 @@ void
 AirMapManager::_error(const QString& what, const QString& airmapdMessage, const QString& airmapdDetails)
 {
     qCDebug(AirMapManagerLog) << "Error: "<<what<<", msg: "<<airmapdMessage<<", details: "<<airmapdDetails;
-    qgcApp()->showAppMessage(QString("Error: %1. %2").arg(what).arg(airmapdMessage));
+    qgcApp()->showMessage(QString("Error: %1. %2").arg(what).arg(airmapdMessage));
 }
 
 //-----------------------------------------------------------------------------
@@ -168,11 +168,11 @@ AirMapManager::_settingsTimeout()
         auto credentials    = Credentials{};
         credentials.api_key = _shared.settings().apiKey.toStdString();
         auto configuration  = Client::default_production_configuration(credentials);
-        configuration.telemetry.host = _telemetryHost;
-        configuration.telemetry.port = _telemetryPort;
-        services::Client::create(configuration, _dispatchingLogger, this, [this](const services::Client::CreateResult& result) {
+        configuration.telemetry.host = "udp.telemetry.k8s.airmap.io";
+        configuration.telemetry.port = 7070;
+        qt::Client::create(configuration, _dispatchingLogger, this, [this](const qt::Client::CreateResult& result) {
             if (result) {
-                qCDebug(AirMapManagerLog) << "Successfully created airmap::services::Client instance";
+                qCDebug(AirMapManagerLog) << "Successfully created airmap::qt::Client instance";
                 _shared.setClient(result.value());
                 emit connectedChanged();
                 _connectStatus = tr("AirMap Enabled");
@@ -180,10 +180,10 @@ AirMapManager::_settingsTimeout()
                 //-- Now test authentication
                 _shared.login();
             } else {
-                qWarning("Failed to create airmap::services::Client instance");
+                qWarning("Failed to create airmap::qt::Client instance");
                 QString description = QString::fromStdString(result.error().description() ? result.error().description().get() : "");
                 QString error = QString::fromStdString(result.error().message());
-                _error(tr("Failed to create airmap::services::Client instance"),
+                _error(tr("Failed to create airmap::qt::Client instance"),
                         error, description);
                 _connectStatus = error;
                 if(!description.isEmpty()) {

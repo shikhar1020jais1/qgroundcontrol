@@ -221,11 +221,11 @@ DropButton {
             QGCButton {
                 text:               qsTr("Vehicle")
                 Layout.fillWidth:   true
-                enabled:            globals.activeVehicle && globals.activeVehicle.latitude != 0 && globals.activeVehicle.longitude != 0 && !followVehicleCheckBox.checked
+                enabled:            activeVehicle && activeVehicle.latitude != 0 && activeVehicle.longitude != 0 && !followVehicleCheckBox.checked
 
                 onClicked: {
                     dropButton.hideDropDown()
-                    map.center = globals.activeVehicle.coordinate
+                    map.center = activeVehicle.coordinate
                 }
             }
 

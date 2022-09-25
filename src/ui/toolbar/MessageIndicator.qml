@@ -21,28 +21,26 @@ import QGroundControl.Palette               1.0
 //-------------------------------------------------------------------------
 //-- Message Indicator
 Item {
-    id:             _root
     width:          height
     anchors.top:    parent.top
     anchors.bottom: parent.bottom
 
     property bool showIndicator: true
 
-    property var    _activeVehicle:         QGroundControl.multiVehicleManager.activeVehicle
-    property bool   _isMessageImportant:    _activeVehicle ? !_activeVehicle.messageTypeNormal && !_activeVehicle.messageTypeNone : false
+    property bool _isMessageImportant:    activeVehicle ? !activeVehicle.messageTypeNormal && !activeVehicle.messageTypeNone : false
 
     function getMessageColor() {
-        if (_activeVehicle) {
-            if (_activeVehicle.messageTypeNone)
+        if (activeVehicle) {
+            if (activeVehicle.messageTypeNone)
                 return qgcPal.colorGrey
-            if (_activeVehicle.messageTypeNormal)
+            if (activeVehicle.messageTypeNormal)
                 return qgcPal.colorBlue;
-            if (_activeVehicle.messageTypeWarning)
+            if (activeVehicle.messageTypeWarning)
                 return qgcPal.colorOrange;
-            if (_activeVehicle.messageTypeError)
+            if (activeVehicle.messageTypeError)
                 return qgcPal.colorRed;
             // Cannot be so make make it obnoxious to show error
-            console.warn("MessageIndicator.qml:getMessageColor Invalid vehicle message type", _activeVehicle.messageTypeNone)
+            console.log("Invalid vehicle message type")
             return "purple";
         }
         //-- It can only get here when closing (vehicle gone while window active)
@@ -56,7 +54,7 @@ Item {
         sourceSize.height:  height
         fillMode:           Image.PreserveAspectFit
         cache:              false
-        visible:            _activeVehicle && _activeVehicle.messageCount > 0 && _isMessageImportant
+        visible:            activeVehicle && activeVehicle.messageCount > 0 && _isMessageImportant
     }
 
     QGCColoredImage {
@@ -70,89 +68,6 @@ Item {
 
     MouseArea {
         anchors.fill:   parent
-        onClicked:      mainWindow.showIndicatorPopup(_root, vehicleMessagesPopup)
-    }
-
-    Component {
-        id: vehicleMessagesPopup
-
-        Rectangle {
-            width:          mainWindow.width  * 0.666
-            height:         mainWindow.height * 0.666
-            radius:         ScreenTools.defaultFontPixelHeight / 2
-            color:          qgcPal.window
-            border.color:   qgcPal.text
-
-            function formatMessage(message) {
-                message = message.replace(new RegExp("<#E>", "g"), "color: " + qgcPal.warningText + "; font: " + (ScreenTools.defaultFontPointSize.toFixed(0) - 1) + "pt monospace;");
-                message = message.replace(new RegExp("<#I>", "g"), "color: " + qgcPal.warningText + "; font: " + (ScreenTools.defaultFontPointSize.toFixed(0) - 1) + "pt monospace;");
-                message = message.replace(new RegExp("<#N>", "g"), "color: " + qgcPal.text + "; font: " + (ScreenTools.defaultFontPointSize.toFixed(0) - 1) + "pt monospace;");
-                return message;
-            }
-
-            Component.onCompleted: {
-                messageText.text = formatMessage(_activeVehicle.formattedMessages)
-                //-- Hack to scroll to last message
-                for (var i = 0; i < _activeVehicle.messageCount; i++)
-                    messageFlick.flick(0,-5000)
-                _activeVehicle.resetMessages()
-            }
-
-            Connections {
-                target: _activeVehicle
-                onNewFormattedMessage :{
-                    messageText.append(formatMessage(formattedMessage))
-                    //-- Hack to scroll down
-                    messageFlick.flick(0,-500)
-                }
-            }
-
-            QGCLabel {
-                anchors.centerIn:   parent
-                text:               qsTr("No Messages")
-                visible:            messageText.length === 0
-            }
-
-            //-- Clear Messages
-            QGCColoredImage {
-                anchors.bottom:     parent.bottom
-                anchors.right:      parent.right
-                anchors.margins:    ScreenTools.defaultFontPixelHeight * 0.5
-                height:             ScreenTools.isMobile ? ScreenTools.defaultFontPixelHeight * 1.5 : ScreenTools.defaultFontPixelHeight
-                width:              height
-                sourceSize.height:   height
-                source:             "/res/TrashDelete.svg"
-                fillMode:           Image.PreserveAspectFit
-                mipmap:             true
-                smooth:             true
-                color:              qgcPal.text
-                visible:            messageText.length !== 0
-                MouseArea {
-                    anchors.fill:   parent
-                    onClicked: {
-                        if (_activeVehicle) {
-                            _activeVehicle.clearMessages()
-                            mainWindow.hideIndicatorPopup()
-                        }
-                    }
-                }
-            }
-
-            QGCFlickable {
-                id:                 messageFlick
-                anchors.margins:    ScreenTools.defaultFontPixelHeight
-                anchors.fill:       parent
-                contentHeight:      messageText.height
-                contentWidth:       messageText.width
-                pixelAligned:       true
-
-                TextEdit {
-                    id:             messageText
-                    readOnly:       true
-                    textFormat:     TextEdit.RichText
-                    color:          qgcPal.text
-                }
-            }
-        }
+        onClicked:      mainWindow.showVehicleMessages()
     }
 }

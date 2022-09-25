@@ -417,8 +417,8 @@ SetupPage {
 
                     Rectangle {
                         id:     geoFenceSettings
-                        width:  fenceAltMaxField.x + fenceAltMaxField.width + _margins
-                        height: fenceAltMaxField.y + fenceAltMaxField.height + _margins
+                        width:  fenceMarginField.x + fenceMarginField.width + _margins
+                        height: fenceMarginField.y + fenceMarginField.height + _margins
                         color:  ggcPal.windowShade
 
                         QGCCheckBox {
@@ -437,7 +437,7 @@ SetupPage {
                                         _fenceEnable.value = 1
                                         _fenceType.value = 2
                                     }
-                                } else if (altitudeGeo.checked) {
+                                } else if (altitudeGeo.checked || polygonGeo.checked) {
                                     _fenceType.value &= ~2
                                 } else {
                                     _fenceEnable.value = 0
@@ -462,8 +462,33 @@ SetupPage {
                                         _fenceEnable.value = 1
                                         _fenceType.value = 1
                                     }
-                                } else if (circleGeo.checked) {
+                                } else if (circleGeo.checked || polygonGeo.checked) {
                                     _fenceType.value &= ~1
+                                } else {
+                                    _fenceEnable.value = 0
+                                    _fenceType.value = 0
+                                }
+                            }
+                        }
+
+                        QGCCheckBox {
+                            id:                 polygonGeo
+                            anchors.topMargin:  _margins / 2
+                            anchors.left:       altitudeGeo.left
+                            anchors.top:        altitudeGeo.bottom
+                            text:               qsTr("Polygon GeoFence enabled")
+                            checked:            _fenceEnable.value != 0 && _fenceType.value & 4
+
+                            onClicked: {
+                                if (checked) {
+                                    if (_fenceEnable.value == 1) {
+                                        _fenceType.value |= 4
+                                    } else {
+                                        _fenceEnable.value = 1
+                                        _fenceType.value = 4
+                                    }
+                                } else if (circleGeo.checked || altitudeGeo.checked) {
+                                    _fenceType.value &= ~4
                                 } else {
                                     _fenceEnable.value = 0
                                     _fenceType.value = 0
@@ -475,7 +500,7 @@ SetupPage {
                             id:                 geoReportRadio
                             anchors.margins:    _margins
                             anchors.left:       parent.left
-                            anchors.top:        altitudeGeo.bottom
+                            anchors.top:        polygonGeo.bottom
                             text:               qsTr("Report only")
                             checked:            _fenceAction.value == 0
 
@@ -523,6 +548,23 @@ SetupPage {
                             anchors.left:       fenceAltMaxLabel.right
                             anchors.top:        fenceRadiusField.bottom
                             fact:               _fenceAltMax
+                            showUnits:          true
+                        }
+
+                        QGCLabel {
+                            id:                 fenceMarginLabel
+                            anchors.left:       circleGeo.left
+                            anchors.baseline:   fenceMarginField.baseline
+                            text:               qsTr("Margin:         ")
+                        }
+
+                        FactTextField {
+                            id:                 fenceMarginField
+                            anchors.topMargin:  _margins / 2
+                            anchors.leftMargin: _margins
+                            anchors.left:       fenceMarginLabel.right
+                            anchors.top:        fenceAltMaxField.bottom
+                            fact:               _fenceMargin
                             showUnits:          true
                         }
                     } // Rectangle - GeoFence Settings

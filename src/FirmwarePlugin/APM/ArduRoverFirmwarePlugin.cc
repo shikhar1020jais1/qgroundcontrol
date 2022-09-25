@@ -22,7 +22,10 @@ APMRoverMode::APMRoverMode(uint32_t mode, bool settable)
         {STEERING,       "Steering"},
         {HOLD,           "Hold"},
         {LOITER,         "Loiter"},
+#if 0
+    // Follow me not ready for Stable
         {FOLLOW,         "Follow"},
+#endif
         {SIMPLE,         "Simple"},
         {AUTO,           "Auto"},
         {RTL,            "RTL"},
@@ -40,7 +43,10 @@ ArduRoverFirmwarePlugin::ArduRoverFirmwarePlugin(void)
         APMRoverMode(APMRoverMode::STEERING     ,true),
         APMRoverMode(APMRoverMode::HOLD         ,true),
         APMRoverMode(APMRoverMode::LOITER       ,true),
+#if 0
+    // Follow me not ready for Stable
         APMRoverMode(APMRoverMode::FOLLOW       ,true),
+#endif
         APMRoverMode(APMRoverMode::SIMPLE       ,true),
         APMRoverMode(APMRoverMode::AUTO         ,true),
         APMRoverMode(APMRoverMode::RTL          ,true),
@@ -65,9 +71,12 @@ int ArduRoverFirmwarePlugin::remapParamNameHigestMinorVersionNumber(int majorVer
     return majorVersionNumber == 3 ? 5 : Vehicle::versionNotSetValue;
 }
 
-void ArduRoverFirmwarePlugin::guidedModeChangeAltitude(Vehicle* /*vehicle*/, double /*altitudeChange*/, bool /*pauseVehicle*/)
+void ArduRoverFirmwarePlugin::guidedModeChangeAltitude(Vehicle* vehicle, double altitudeChange)
 {
-    qgcApp()->showAppMessage(QStringLiteral("Change altitude not supported."));
+    Q_UNUSED(vehicle);
+    Q_UNUSED(altitudeChange);
+
+    qgcApp()->showMessage(QStringLiteral("Change altitude not supported."));
 }
 
 bool ArduRoverFirmwarePlugin::supportsNegativeThrust(Vehicle* /*vehicle*/)

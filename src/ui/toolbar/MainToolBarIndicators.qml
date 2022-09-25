@@ -7,10 +7,15 @@
  *
  ****************************************************************************/
 
-import QtQuick 2.12
+import QtQuick          2.11
+import QtQuick.Controls 2.4
+import QtQuick.Layouts  1.11
 
-import QGroundControl               1.0
-import QGroundControl.ScreenTools   1.0
+import QGroundControl                       1.0
+import QGroundControl.Controls              1.0
+import QGroundControl.MultiVehicleManager   1.0
+import QGroundControl.ScreenTools           1.0
+import QGroundControl.Palette               1.0
 
 //-------------------------------------------------------------------------
 //-- Toolbar Indicators
@@ -18,38 +23,15 @@ Row {
     id:                 indicatorRow
     anchors.top:        parent.top
     anchors.bottom:     parent.bottom
-    anchors.margins:    _toolIndicatorMargins
     spacing:            ScreenTools.defaultFontPixelWidth * 1.5
 
-    property var  _activeVehicle:           QGroundControl.multiVehicleManager.activeVehicle
-    property real _toolIndicatorMargins:    ScreenTools.defaultFontPixelHeight * 0.66
-
     Repeater {
-        id:     appRepeater
-        model:  QGroundControl.corePlugin.toolBarIndicators
+        model: activeVehicle ? activeVehicle.toolBarIndicators : []
         Loader {
+            id:                 indicatorLoader
             anchors.top:        parent.top
             anchors.bottom:     parent.bottom
-            source:             modelData
-            visible:            item.showIndicator
-        }
-    }
-
-    Repeater {
-        model: _activeVehicle ? _activeVehicle.toolIndicators : []
-        Loader {
-            anchors.top:        parent.top
-            anchors.bottom:     parent.bottom
-            source:             modelData
-            visible:            item.showIndicator
-        }
-    }
-
-    Repeater {
-        model: _activeVehicle ? _activeVehicle.modeIndicators : []
-        Loader {
-            anchors.top:        parent.top
-            anchors.bottom:     parent.bottom
+            anchors.margins:    ScreenTools.defaultFontPixelHeight * 0.66
             source:             modelData
             visible:            item.showIndicator
         }

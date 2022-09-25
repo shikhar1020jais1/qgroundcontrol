@@ -7,7 +7,8 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef PlanManager_H
+#define PlanManager_H
 
 #include <QObject>
 #include <QLoggingCategory>
@@ -19,7 +20,6 @@
 #include "LinkInterface.h"
 
 class Vehicle;
-class MissionCommandTree;
 
 Q_DECLARE_LOGGING_CATEGORY(PlanManagerLog)
 
@@ -60,10 +60,10 @@ public:
     typedef enum {
         InternalError,
         AckTimeoutError,        ///< Timed out waiting for response from vehicle
-        ProtocolError,          ///< Incorrect protocol sequence from vehicle
+        ProtocolOrderError,     ///< Incorrect protocol sequence from vehicle
         RequestRangeError,      ///< Vehicle requested item out of range
         ItemMismatchError,      ///< Vehicle returned item with seq # different than requested
-        VehicleAckError,        ///< Vehicle returned error in ack
+        VehicleError,           ///< Vehicle returned error
         MissingRequestsError,   ///< Vehicle did not request all items during write sequence
         MaxRetryExceeded,       ///< Retry failed
         MissionTypeMismatch,    ///< MAV_MISSION_TYPE does not match _planType
@@ -113,8 +113,8 @@ protected:
     bool _checkForExpectedAck(AckType_t receivedAck);
     void _readTransactionComplete(void);
     void _handleMissionCount(const mavlink_message_t& message);
-    void _handleMissionItem(const mavlink_message_t& message);
-    void _handleMissionRequest(const mavlink_message_t& message);
+    void _handleMissionItem(const mavlink_message_t& message, bool missionItemInt);
+    void _handleMissionRequest(const mavlink_message_t& message, bool missionItemInt);
     void _handleMissionAck(const mavlink_message_t& message);
     void _requestNextMissionItem(void);
     void _clearMissionItems(void);
@@ -134,11 +134,11 @@ protected:
     QString _planTypeString(void);
 
 protected:
-    Vehicle*            _vehicle =              nullptr;
-    MissionCommandTree* _missionCommandTree =   nullptr;
+    Vehicle*            _vehicle;
     MAV_MISSION_TYPE    _planType;
+    LinkInterface*      _dedicatedLink;
 
-    QTimer*             _ackTimeoutTimer =      nullptr;
+    QTimer*             _ackTimeoutTimer;
     AckType_t           _expectedAck;
     int                 _retryCount;
 
@@ -157,3 +157,5 @@ protected:
 private:
     void _setTransactionInProgress(TransactionType_t type);
 };
+
+#endif

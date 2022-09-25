@@ -10,13 +10,11 @@
 #include "TerrainTile.h"
 #include "JsonHelper.h"
 #include "QGCMapEngine.h"
-#include "QGC.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDataStream>
-#include <QtMath>
 
 QGC_LOGGING_CATEGORY(TerrainTileLog, "TerrainTileLog");
 
@@ -47,9 +45,9 @@ TerrainTile::~TerrainTile()
 {
     if (_data) {
         for (int i = 0; i < _gridSizeLat; i++) {
-            delete[] _data[i];
+            delete _data[i];
         }
-        delete[] _data;
+        delete _data;
         _data = nullptr;
     }
 }
@@ -109,40 +107,34 @@ TerrainTile::TerrainTile(QByteArray byteArray)
     return;
 }
 
+
+bool TerrainTile::isIn(const QGeoCoordinate& coordinate) const
+{
+    if (!_isValid) {
+        qCWarning(TerrainTileLog) << "isIn requested, but tile not valid";
+        return false;
+    }
+    bool ret = coordinate.latitude() >= _southWest.latitude() && coordinate.longitude() >= _southWest.longitude() &&
+            coordinate.latitude() <= _northEast.latitude() && coordinate.longitude() <= _northEast.longitude();
+    qCDebug(TerrainTileLog) << "Checking isIn: " << coordinate << " , in sw " << _southWest << " , ne " << _northEast << ": " << ret;
+    return ret;
+}
+
 double TerrainTile::elevation(const QGeoCoordinate& coordinate) const
 {
-    if (_isValid && _southWest.isValid() && _northEast.isValid()) {
+    if (_isValid) {
         qCDebug(TerrainTileLog) << "elevation: " << coordinate << " , in sw " << _southWest << " , ne " << _northEast;
-
-        // The lat/lon values in _northEast and _southWest coordinates can have rounding errors such that the coordinate
-        // request may be slightly outside the tile box specified by these values. So we clamp the incoming values to the
-        // edges of the tile if needed.
-
-        double clampedLon = qMax(coordinate.longitude(), _southWest.longitude());
-        double clampedLat = qMax(coordinate.latitude(), _southWest.latitude());
-
-        // Calc the index of the southernmost and westernmost index data value
-        int lonIndex = qFloor((clampedLon - _southWest.longitude()) / tileValueSpacingDegrees);
-        int latIndex = qFloor((clampedLat - _southWest.latitude()) / tileValueSpacingDegrees);
-
-        // Calc how far along in between the known values the requested lat/lon is fractionally
-        double lonIndexLongitude    = _southWest.longitude() + (static_cast<double>(lonIndex) * tileValueSpacingDegrees);
-        double lonFraction          = (clampedLon - lonIndexLongitude) / tileValueSpacingDegrees;
-        double latIndexLatitude     = _southWest.latitude() + (static_cast<double>(latIndex) * tileValueSpacingDegrees);
-        double latFraction          = (clampedLat - latIndexLatitude) / tileValueSpacingDegrees;
-
-        // Calc the elevation as the average across the four known points
-        double known00      = _data[latIndex][lonIndex];
-        double known01      = _data[latIndex][lonIndex+1];
-        double known10      = _data[latIndex+1][lonIndex];
-        double known11      = _data[latIndex+1][lonIndex+1];
-        double lonValue1    = known00 + ((known01 - known00) * lonFraction);
-        double lonValue2    = known10 + ((known11 - known10) * lonFraction);
-        double latValue     = lonValue1 + ((lonValue2 - lonValue1) * latFraction);
-
-        return latValue;
+        // Get the index at resolution of 1 arc second
+        int indexLat = _latToDataIndex(coordinate.latitude());
+        int indexLon = _lonToDataIndex(coordinate.longitude());
+        if (indexLat == -1 || indexLon == -1) {
+            qCWarning(TerrainTileLog) << "Internal error indexLat:indexLon == -1" << indexLat << indexLon;
+            return qQNaN();
+        }
+        qCDebug(TerrainTileLog) << "indexLat:indexLon" << indexLat << indexLon << "elevation" << _data[indexLat][indexLon];
+        return static_cast<double>(_data[indexLat][indexLon]);
     } else {
-        qCWarning(TerrainTileLog) << "elevation: Internal error - invalid tile";
+        qCWarning(TerrainTileLog) << "Asking for elevation, but no valid data.";
         return qQNaN();
     }
 }
@@ -152,7 +144,7 @@ QGeoCoordinate TerrainTile::centerCoordinate(void) const
     return _southWest.atDistanceAndAzimuth(_southWest.distanceTo(_northEast) / 2.0, _southWest.azimuthTo(_northEast));
 }
 
-QByteArray TerrainTile::serializeFromAirMapJson(QByteArray input)
+QByteArray TerrainTile::serialize(QByteArray input)
 {
     QJsonParseError parseError;
     QJsonDocument document = QJsonDocument::fromJson(input, &parseError);
@@ -232,6 +224,8 @@ QByteArray TerrainTile::serializeFromAirMapJson(QByteArray input)
     const QJsonArray& carpetArray = dataObject[_jsonCarpetKey].toArray();
     int gridSizeLat = carpetArray.count();
     int gridSizeLon = carpetArray[0].toArray().count();
+    qCDebug(TerrainTileLog) << "Received tile has size in latitude direction: " << gridSizeLat;
+    qCDebug(TerrainTileLog) << "Received tile has size in longitued direction: " << gridSizeLon;
 
     TileInfo_t tileInfo;
 
@@ -244,16 +238,6 @@ QByteArray TerrainTile::serializeFromAirMapJson(QByteArray input)
     tileInfo.avgElevation = statsObject[_jsonAvgElevationKey].toDouble();
     tileInfo.gridSizeLat = static_cast<int16_t>(gridSizeLat);
     tileInfo.gridSizeLon = static_cast<int16_t>(gridSizeLon);
-
-    // We require 1-arc second value spacing
-    double neCornerLatExpected = tileInfo.swLat + ((tileInfo.gridSizeLat - 1) * tileValueSpacingDegrees);
-    double neCornerLonExpected = tileInfo.swLon + ((tileInfo.gridSizeLon - 1) * tileValueSpacingDegrees);
-    if (!QGC::fuzzyCompare(tileInfo.neLat, neCornerLatExpected) || !QGC::fuzzyCompare(tileInfo.neLon, neCornerLonExpected)) {
-        qCWarning(TerrainTileLog) << QStringLiteral("serialize: Internal error - distance between values incorrect neExpected(%1, %2) neActual(%3, %4) sw(%5, %6) gridSize(%7, %8)")
-                                     .arg(neCornerLatExpected).arg(neCornerLonExpected).arg(tileInfo.neLat).arg(tileInfo.neLon).arg(tileInfo.swLat).arg(tileInfo.swLon).arg(tileInfo.gridSizeLat).arg(tileInfo.gridSizeLon);
-        QByteArray emptyArray;
-        return emptyArray;
-    }
 
     int cTileHeaderBytes = static_cast<int>(sizeof(TileInfo_t));
     int cTileDataBytes = static_cast<int>(sizeof(int16_t)) * gridSizeLat * gridSizeLon;
@@ -279,4 +263,25 @@ QByteArray TerrainTile::serializeFromAirMapJson(QByteArray input)
     }
 
     return byteArray;
+}
+
+
+int TerrainTile::_latToDataIndex(double latitude) const
+{
+    if (isValid() && _southWest.isValid() && _northEast.isValid()) {
+        return qRound((latitude - _southWest.latitude()) / (_northEast.latitude() - _southWest.latitude()) * (_gridSizeLat - 1));
+    } else {
+        qCWarning(TerrainTileLog) << "TerrainTile::_latToDataIndex internal error" << isValid() << _southWest.isValid() << _northEast.isValid();
+        return -1;
+    }
+}
+
+int TerrainTile::_lonToDataIndex(double longitude) const
+{
+    if (isValid() && _southWest.isValid() && _northEast.isValid()) {
+        return qRound((longitude - _southWest.longitude()) / (_northEast.longitude() - _southWest.longitude()) * (_gridSizeLon - 1));
+    } else {
+        qCWarning(TerrainTileLog) << "TerrainTile::_lonToDataIndex internal error" << isValid() << _southWest.isValid() << _northEast.isValid();
+        return -1;
+    }
 }

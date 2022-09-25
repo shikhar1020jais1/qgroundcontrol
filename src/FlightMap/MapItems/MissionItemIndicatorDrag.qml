@@ -71,7 +71,6 @@ Rectangle {
         drag.maximumX:      itemDragger.parent.width - parent.width
         drag.maximumY:      itemDragger.parent.height - parent.height
         preventStealing:    true
-        enabled:            itemDragger.visible
 
         onClicked: {
             focus = true

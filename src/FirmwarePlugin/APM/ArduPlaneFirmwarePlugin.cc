@@ -39,7 +39,6 @@ APMPlaneMode::APMPlaneMode(uint32_t mode, bool settable)
         { QRTL,             "QuadPlane RTL" },
         { QAUTOTUNE,        "QuadPlane AutoTune" },
         { QACRO,            "QuadPlane Acro" },
-        { THERMAL,          "Thermal"},
     });
 }
 
@@ -69,7 +68,6 @@ ArduPlaneFirmwarePlugin::ArduPlaneFirmwarePlugin(void)
         APMPlaneMode(APMPlaneMode::QRTL,            true),
         APMPlaneMode(APMPlaneMode::QAUTOTUNE,       true),
         APMPlaneMode(APMPlaneMode::QACRO,           true),
-        APMPlaneMode(APMPlaneMode::THERMAL,         true),
     });
 
     if (!_remapParamNameIntialized) {

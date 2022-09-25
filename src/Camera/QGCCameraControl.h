@@ -31,7 +31,6 @@ public:
     QGCVideoStreamInfo(QObject* parent, const mavlink_video_stream_information_t* si);
 
     Q_PROPERTY(QString      uri                 READ uri                NOTIFY infoChanged)
-    Q_PROPERTY(QString      name                READ name               NOTIFY infoChanged)
     Q_PROPERTY(int          streamID            READ streamID           NOTIFY infoChanged)
     Q_PROPERTY(int          type                READ type               NOTIFY infoChanged)
     Q_PROPERTY(qreal        aspectRatio         READ aspectRatio        NOTIFY infoChanged)
@@ -39,12 +38,11 @@ public:
     Q_PROPERTY(bool         isThermal           READ isThermal          NOTIFY infoChanged)
 
     QString uri             () { return QString(_streamInfo.uri);  }
-    QString name            () { return QString(_streamInfo.name); }
-    qreal   aspectRatio     () const;
-    qreal   hfov            () const{ return _streamInfo.hfov; }
-    int     type            () const{ return _streamInfo.type; }
-    int     streamID        () const{ return _streamInfo.stream_id; }
-    bool    isThermal       () const{ return _streamInfo.flags & VIDEO_STREAM_STATUS_FLAGS_THERMAL; }
+    qreal   aspectRatio     ();
+    qreal   hfov            () { return 180; }
+    int     type            () { return VIDEO_STREAM_TYPE_RTSP; }
+    int     streamID        () { return _streamInfo.camera_id; }
+    bool    isThermal       () { return false; }
 
     bool    update          (const mavlink_video_stream_status_t* vs);
 
@@ -125,10 +123,10 @@ public:
 
     //-- Storage Status
     enum StorageStatus {
-        STORAGE_EMPTY = STORAGE_STATUS_EMPTY,
-        STORAGE_UNFORMATTED = STORAGE_STATUS_UNFORMATTED,
-        STORAGE_READY = STORAGE_STATUS_READY,
-        STORAGE_NOT_SUPPORTED = STORAGE_STATUS_NOT_SUPPORTED
+        STORAGE_EMPTY = 0,
+        STORAGE_UNFORMATTED = 1,
+        STORAGE_READY = 2,
+        STORAGE_NOT_SUPPORTED = 3
     };
 
     enum ThermalViewMode {
@@ -372,7 +370,6 @@ private:
     void    _updateRanges                   (Fact* pFact);
     void    _httpRequest                    (const QString& url);
     void    _handleDefinitionFile           (const QString& url);
-    void    _ftpDownloadComplete            (const QString& fileName, const QString& errorMsg);
 
     QStringList     _loadExclusions         (QDomNode option);
     QStringList     _loadUpdates            (QDomNode option);

@@ -98,7 +98,6 @@ void QGCToolbox::setChildToolboxes(void)
 {
     // SettingsManager must be first so settings are available to any subsequent tools
     _settingsManager->setToolbox(this);
-
     _corePlugin->setToolbox(this);
     _audioOutput->setToolbox(this);
     _factSystem->setToolbox(this);
@@ -135,13 +134,13 @@ void QGCToolbox::_scanAndLoadPlugins(QGCApplication* app)
 {
 #if defined (QGC_CUSTOM_BUILD)
     //-- Create custom plugin (Static)
-    _corePlugin = (QGCCorePlugin*) new CUSTOMCLASS(app, this);
+    _corePlugin = (QGCCorePlugin*) new CUSTOMCLASS(app, app->toolbox());
     if(_corePlugin) {
         return;
     }
 #endif
     //-- No plugins found, use default instance
-    _corePlugin = new QGCCorePlugin(app, this);
+    _corePlugin = new QGCCorePlugin(app, app->toolbox());
 }
 
 QGCTool::QGCTool(QGCApplication* app, QGCToolbox* toolbox)

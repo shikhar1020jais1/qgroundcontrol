@@ -47,7 +47,7 @@ Item {
         MissionItemIndicatorDrag {
             mapControl:     _root.map
             itemCoordinate: rallyPointObject.coordinate
-            visible:        rallyPointObject === myRallyPointController.currentRallyPoint && _root.interactive
+            visible:        rallyPointObject === myRallyPointController.currentRallyPoint
 
             property var rallyPointObject
 
@@ -63,7 +63,6 @@ Item {
             anchorPoint.x:  sourceItem.anchorPointX
             anchorPoint.y:  sourceItem.anchorPointY
             z:              QGroundControl.zOrderMapItems
-            opacity:        _root.opacity
 
             property var rallyPointObject
 
@@ -85,7 +84,6 @@ Item {
             model: _rallyPoints
 
             delegate: Item {
-                opacity:        _root.opacity
                 property var _visuals: [ ]
 
                 Component.onCompleted: {

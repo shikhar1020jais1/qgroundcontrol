@@ -7,6 +7,10 @@
  *
  ****************************************************************************/
 
+
+/// @file
+///     @author Don Gagne <don@thegagnes.com>
+
 #include "PX4FirmwarePluginFactory.h"
 #include "PX4/PX4FirmwarePlugin.h"
 
@@ -18,10 +22,10 @@ PX4FirmwarePluginFactory::PX4FirmwarePluginFactory(void)
 
 }
 
-QList<QGCMAVLink::FirmwareClass_t> PX4FirmwarePluginFactory::supportedFirmwareClasses(void) const
+QList<MAV_AUTOPILOT> PX4FirmwarePluginFactory::supportedFirmwareTypes(void) const
 {
-    QList<QGCMAVLink::FirmwareClass_t> list;
-    list.append(QGCMAVLink::FirmwareClassPX4);
+    QList<MAV_AUTOPILOT> list;
+    list.append(MAV_AUTOPILOT_PX4);
     return list;
 }
 

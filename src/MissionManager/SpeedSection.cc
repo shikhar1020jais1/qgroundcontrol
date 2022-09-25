@@ -11,14 +11,13 @@
 #include "JsonHelper.h"
 #include "FirmwarePlugin.h"
 #include "SimpleMissionItem.h"
-#include "PlanMasterController.h"
 
 const char* SpeedSection::_flightSpeedName = "FlightSpeed";
 
 QMap<QString, FactMetaData*> SpeedSection::_metaDataMap;
 
-SpeedSection::SpeedSection(PlanMasterController* masterController, QObject* parent)
-    : Section               (masterController, parent)
+SpeedSection::SpeedSection(Vehicle* vehicle, QObject* parent)
+    : Section               (vehicle, parent)
     , _available            (false)
     , _dirty                (false)
     , _specifyFlightSpeed   (false)
@@ -29,10 +28,10 @@ SpeedSection::SpeedSection(PlanMasterController* masterController, QObject* pare
     }
 
     double flightSpeed = 0;
-    if (_masterController->controllerVehicle()->multiRotor()) {
-        flightSpeed = _masterController->controllerVehicle()->defaultHoverSpeed();
+    if (_vehicle->multiRotor()) {
+        flightSpeed = _vehicle->defaultHoverSpeed();
     } else {
-        flightSpeed = _masterController->controllerVehicle()->defaultCruiseSpeed();
+        flightSpeed = _vehicle->defaultCruiseSpeed();
     }
 
     _metaDataMap[_flightSpeedName]->setRawDefaultValue(flightSpeed);
@@ -54,7 +53,7 @@ bool SpeedSection::settingsSpecified(void) const
 void SpeedSection::setAvailable(bool available)
 {
     if (available != _available) {
-        if (available && (_masterController->controllerVehicle()->multiRotor() || _masterController->controllerVehicle()->fixedWing())) {
+        if (available && (_vehicle->multiRotor() || _vehicle->fixedWing())) {
             _available = available;
             emit availableChanged(available);
         }
@@ -92,7 +91,7 @@ void SpeedSection::appendSectionItems(QList<MissionItem*>& items, QObject* missi
         MissionItem* item = new MissionItem(seqNum++,
                                             MAV_CMD_DO_CHANGE_SPEED,
                                             MAV_FRAME_MISSION,
-                                            _masterController->controllerVehicle()->multiRotor() ? 1 /* groundspeed */ : 0 /* airspeed */,    // Change airspeed or groundspeed
+                                            _vehicle->multiRotor() ? 1 /* groundspeed */ : 0 /* airspeed */,    // Change airspeed or groundspeed
                                             _flightSpeedFact.rawValue().toDouble(),
                                             -1,                                                                 // No throttle change
                                             0,                                                                  // Absolute speed change
@@ -120,9 +119,9 @@ bool SpeedSection::scanForSection(QmlObjectListModel* visualItems, int scanIndex
     // See SpeedSection::appendMissionItems for specs on what consitutes a known speed setting
 
     if (missionItem.command() == MAV_CMD_DO_CHANGE_SPEED && missionItem.param3() == -1 && missionItem.param4() == 0 && missionItem.param5() == 0 && missionItem.param6() == 0 && missionItem.param7() == 0) {
-        if (_masterController->controllerVehicle()->multiRotor() && missionItem.param1() != 1) {
+        if (_vehicle->multiRotor() && missionItem.param1() != 1) {
             return false;
-        } else if (_masterController->controllerVehicle()->fixedWing() && missionItem.param1() != 0) {
+        } else if (_vehicle->fixedWing() && missionItem.param1() != 0) {
             return false;
         }
         visualItems->removeAt(scanIndex)->deleteLater();

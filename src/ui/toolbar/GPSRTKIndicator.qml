@@ -23,7 +23,7 @@ Item {
     anchors.top:    parent.top
     anchors.bottom: parent.bottom
 
-    property bool showIndicator: QGroundControl.gpsRtk ? QGroundControl.gpsRtk.connected.value : false
+    property bool showIndicator: QGroundControl.gpsRtk.connected.value
 
     Component {
         id: gpsInfo
@@ -71,7 +71,7 @@ Item {
                         visible: QGroundControl.gpsRtk.currentAccuracy.value > 0
                         }
                     QGCLabel {
-                        text: QGroundControl.gpsRtk.currentAccuracy.valueString + " " + QGroundControl.unitsConversion.appSettingsHorizontalDistanceUnitsString
+                        text: QGroundControl.gpsRtk.currentAccuracy.valueString + " " + QGroundControl.appSettingsDistanceUnitsString
                         visible: QGroundControl.gpsRtk.currentAccuracy.value > 0
                         }
                     QGCLabel { text: qsTr("Satellites:") }
@@ -109,7 +109,7 @@ Item {
     MouseArea {
         anchors.fill:   parent
         onClicked: {
-            mainWindow.showIndicatorPopup(_root, gpsInfo)
+            mainWindow.showPopUp(_root, gpsInfo)
         }
     }
 }

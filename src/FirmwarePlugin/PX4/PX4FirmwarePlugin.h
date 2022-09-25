@@ -7,7 +7,12 @@
  *
  ****************************************************************************/
 
-#pragma once
+
+/// @file
+///     @author Don Gagne <don@thegagnes.com>
+
+#ifndef PX4FirmwarePlugin_H
+#define PX4FirmwarePlugin_H
 
 #include "FirmwarePlugin.h"
 #include "ParameterManager.h"
@@ -21,13 +26,10 @@ public:
     PX4FirmwarePlugin   ();
     ~PX4FirmwarePlugin  () override;
 
-    // Called internally only
-    void _changeAltAfterPause(void* resultHandlerData, bool pauseSucceeded);
-
     // Overrides from FirmwarePlugin
 
     QList<VehicleComponent*> componentsForVehicle(AutoPilotPlugin* vehicle) override;
-    QList<MAV_CMD> supportedMissionCommands(QGCMAVLink::VehicleClass_t vehicleClass) override;
+    QList<MAV_CMD> supportedMissionCommands(void) override;
 
     AutoPilotPlugin*    autopilotPlugin                 (Vehicle* vehicle) override;
     bool                isCapable                       (const Vehicle *vehicle, FirmwareCapabilities capabilities) override;
@@ -46,32 +48,28 @@ public:
     void                guidedModeRTL                   (Vehicle* vehicle, bool smartRTL) override;
     void                guidedModeLand                  (Vehicle* vehicle) override;
     void                guidedModeTakeoff               (Vehicle* vehicle, double takeoffAltRel) override;
-    double              maximumHorizontalSpeedMultirotor(Vehicle* vehicle) override;
-    double              maximumEquivalentAirspeed(Vehicle* vehicle) override;
-    double              minimumEquivalentAirspeed(Vehicle* vehicle) override;
-    bool                mulirotorSpeedLimitsAvailable(Vehicle* vehicle) override;
-    bool                fixedWingAirSpeedLimitsAvailable(Vehicle* vehicle) override;
     void                guidedModeGotoLocation          (Vehicle* vehicle, const QGeoCoordinate& gotoCoord) override;
-    void                guidedModeChangeAltitude        (Vehicle* vehicle, double altitudeRel, bool pauseVehicle) override;
-    void                guidedModeChangeGroundSpeed      (Vehicle* vehicle, double groundspeed) override;
-    void                guidedModeChangeEquivalentAirspeed(Vehicle* vehicle, double airspeed_equiv) override;
+    void                guidedModeChangeAltitude        (Vehicle* vehicle, double altitudeRel) override;
+    double              minimumTakeoffAltitude          (Vehicle* vehicle) override;
     void                startMission                    (Vehicle* vehicle) override;
     bool                isGuidedMode                    (const Vehicle* vehicle) const override;
     void                initializeVehicle               (Vehicle* vehicle) override;
     bool                sendHomePositionToVehicle       (void) override;
-    QString             missionCommandOverrides         (QGCMAVLink::VehicleClass_t vehicleClass) const override;
-    FactMetaData*       _getMetaDataForFact             (QObject* parameterMetaData, const QString& name, FactMetaData::ValueType_t type, MAV_TYPE vehicleType) override;
-    QString             _internalParameterMetaDataFile  (Vehicle* vehicle) override { Q_UNUSED(vehicle); return QString(":/FirmwarePlugin/PX4/PX4ParameterFactMetaData.xml"); }
-    void                _getParameterMetaDataVersionInfo(const QString& metaDataFile, int& majorVersion, int& minorVersion) override;
-    QObject*            _loadParameterMetaData          (const QString& metaDataFile) final;
+    void                addMetaDataToFact               (QObject* parameterMetaData, Fact* fact, MAV_TYPE vehicleType) override;
+    FactMetaData*       getMetaDataForFact              (QObject* parameterMetaData, const QString& name, MAV_TYPE vehicleType) override;
+    QString             missionCommandOverrides         (MAV_TYPE vehicleType) const override;
+    QString             getVersionParam                 (void) override { return QString("SYS_PARAM_VER"); }
+    QString             internalParameterMetaDataFile   (Vehicle* vehicle) override { Q_UNUSED(vehicle); return QString(":/FirmwarePlugin/PX4/PX4ParameterFactMetaData.xml"); }
+    void                getParameterMetaDataVersionInfo (const QString& metaDataFile, int& majorVersion, int& minorVersion) override;
+    QObject*            loadParameterMetaData           (const QString& metaDataFile) final;
     bool                adjustIncomingMavlinkMessage    (Vehicle* vehicle, mavlink_message_t* message) override;
-    QString             offlineEditingParamFile         (Vehicle* vehicle) override { Q_UNUSED(vehicle); return QStringLiteral(":/FirmwarePlugin/PX4/PX4.OfflineEditing.params"); }
+    QString             offlineEditingParamFile(Vehicle* vehicle) override { Q_UNUSED(vehicle); return QStringLiteral(":/FirmwarePlugin/PX4/PX4.OfflineEditing.params"); }
     QString             brandImageIndoor                (const Vehicle* vehicle) const override { Q_UNUSED(vehicle); return QStringLiteral("/qmlimages/PX4/BrandImage"); }
     QString             brandImageOutdoor               (const Vehicle* vehicle) const override { Q_UNUSED(vehicle); return QStringLiteral("/qmlimages/PX4/BrandImage"); }
     QString             autoDisarmParameter             (Vehicle* vehicle) override { Q_UNUSED(vehicle); return QStringLiteral("COM_DISARM_LAND"); }
     uint32_t            highLatencyCustomModeTo32Bits   (uint16_t hlCustomMode) override;
-    bool                supportsNegativeThrust          (Vehicle* vehicle) override;
-    QString             getHobbsMeter                   (Vehicle* vehicle) override;
+    bool                supportsTerrainFrame            (void) const override { return false; }
+    bool                supportsNegativeThrust          (Vehicle *vehicle) override;
 
 protected:
     typedef struct {
@@ -112,10 +110,9 @@ private slots:
     void _mavCommandResult(int vehicleId, int component, int command, int result, bool noReponseFromVehicle);
 
 private:
-    void    _handleAutopilotVersion         (Vehicle* vehicle, mavlink_message_t* message);
-
-    QString _getLatestVersionFileUrl        (Vehicle* vehicle) override;
-    QString _versionRegex                   () override;
+    void _handleAutopilotVersion(Vehicle* vehicle, mavlink_message_t* message);
+    QString _getLatestVersionFileUrl(Vehicle* vehicle) override;
+    QString _versionRegex() override;
 
     // Any instance data here must be global to all vehicles
     // Vehicle specific data should go into PX4FirmwarePluginInstanceData
@@ -130,3 +127,5 @@ public:
 
     bool versionNotified;  ///< true: user notified over version issue
 };
+
+#endif

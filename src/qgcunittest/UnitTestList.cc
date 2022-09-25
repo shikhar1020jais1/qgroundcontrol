@@ -11,11 +11,12 @@
 // We keep the list of all unit tests in a global location so it's easier to see which
 // ones are enabled/disabled
 
-#include "ComponentInformationCacheTest.h"
 #include "FactSystemTestGeneric.h"
 #include "FactSystemTestPX4.h"
 //#include "FileDialogTest.h"
+//#include "FlightGearTest.h"
 #include "GeoTest.h"
+#include "LinkManagerTest.h"
 //#include "MessageBoxTest.h"
 #include "MissionItemTest.h"
 #include "SimpleMissionItemTest.h"
@@ -26,11 +27,11 @@
 #include "MavlinkLogTest.h"
 //#include "MainWindowTest.h"
 //#include "FileManagerTest.h"
+#include "TCPLinkTest.h"
 #include "ParameterManagerTest.h"
 #include "MissionCommandTreeTest.h"
 //#include "LogDownloadTest.h"
-#include "SendMavCommandWithSignallingTest.h"
-#include "SendMavCommandWithHandlerTest.h"
+#include "SendMavCommandTest.h"
 #include "VisualMissionItemTest.h"
 #include "CameraSectionTest.h"
 #include "SpeedSectionTest.h"
@@ -44,34 +45,25 @@
 #include "TransectStyleComplexItemTest.h"
 #include "CameraCalcTest.h"
 #include "FWLandingPatternTest.h"
-#include "RequestMessageTest.h"
-#include "FTPManagerTest.h"
-#include "MissionCommandTreeEditorTest.h"
-#include "VehicleLinkManagerTest.h"
-#include "LandingComplexItemTest.h"
-#include "InitialConnectTest.h"
 
-UT_REGISTER_TEST(ComponentInformationCacheTest)
 UT_REGISTER_TEST(FactSystemTestGeneric)
 UT_REGISTER_TEST(FactSystemTestPX4)
 //UT_REGISTER_TEST(FileDialogTest)
+//UT_REGISTER_TEST(FlightGearUnitTest)
 UT_REGISTER_TEST(GeoTest)
-UT_REGISTER_TEST(VehicleLinkManagerTest)
+UT_REGISTER_TEST(LinkManagerTest)
 //UT_REGISTER_TEST(MessageBoxTest)
-UT_REGISTER_TEST(SendMavCommandWithSignallingTest)
-UT_REGISTER_TEST(SendMavCommandWithHandlerTest)
-UT_REGISTER_TEST(RequestMessageTest)
-UT_REGISTER_TEST(FTPManagerTest)
-UT_REGISTER_TEST(InitialConnectTest)
 UT_REGISTER_TEST(MissionItemTest)
 UT_REGISTER_TEST(SimpleMissionItemTest)
 UT_REGISTER_TEST(MissionControllerTest)
 UT_REGISTER_TEST(MissionManagerTest)
 //UT_REGISTER_TEST(RadioConfigTest)
+UT_REGISTER_TEST(TCPLinkTest)
 //UT_REGISTER_TEST(FileManagerTest)
 UT_REGISTER_TEST(ParameterManagerTest)
 UT_REGISTER_TEST(MissionCommandTreeTest)
 //UT_REGISTER_TEST(LogDownloadTest)
+UT_REGISTER_TEST(SendMavCommandTest)
 UT_REGISTER_TEST(SurveyComplexItemTest)
 UT_REGISTER_TEST(CameraSectionTest)
 UT_REGISTER_TEST(SpeedSectionTest)
@@ -85,9 +77,6 @@ UT_REGISTER_TEST(TransectStyleComplexItemTest)
 UT_REGISTER_TEST(QGCMapPolylineTest)
 UT_REGISTER_TEST(CameraCalcTest)
 UT_REGISTER_TEST(FWLandingPatternTest)
-UT_REGISTER_TEST(LandingComplexItemTest)
-
-UT_REGISTER_TEST_STANDALONE(MissionCommandTreeEditorTest)
 
 // List of unit test which are currently disabled.
 // If disabling a new test, include reason in comment.

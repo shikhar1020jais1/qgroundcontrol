@@ -7,14 +7,24 @@
  *
  ****************************************************************************/
 
+
+/**
+* @file
+*   @brief Image Provider
+*
+*   @author Gus Grubba <gus@auterion.com>
+*
+*/
+
+
 #include "QGCImageProvider.h"
 
 #include <QPainter>
 #include <QFont>
 
 QGCImageProvider::QGCImageProvider(QGCApplication *app, QGCToolbox* toolbox)
-    : QGCTool               (app, toolbox)
-    , QQuickImageProvider   (QQmlImageProviderBase::Image)
+    : QGCTool(app, toolbox)
+    , QQuickImageProvider(QQmlImageProviderBase::Image)
 {
 }
 
@@ -27,9 +37,9 @@ void QGCImageProvider::setToolbox(QGCToolbox *toolbox)
 {
    QGCTool::setToolbox(toolbox);
    //-- Dummy temporary image until something comes along
-   _image = QImage(320, 240, QImage::Format_RGBA8888);
-   _image.fill(Qt::black);
-   QPainter painter(&_image);
+   _pImage = QImage(320, 240, QImage::Format_RGBA8888);
+   _pImage.fill(Qt::black);
+   QPainter painter(&_pImage);
    QFont f = painter.font();
    f.setPixelSize(20);
    painter.setFont(f);
@@ -64,11 +74,11 @@ QImage QGCImageProvider::requestImage(const QString & /* image url with vehicle 
     For now, we don't even look at the URL. This will have to be fixed if we're to support multiple
     vehicles transmitting flow images.
 */
-    return _image;
+    return _pImage;
 }
 
 void QGCImageProvider::setImage(QImage* pImage, int /* vehicle id*/)
 {
-    _image = pImage->mirrored();
+    _pImage = pImage->mirrored();
 }
 

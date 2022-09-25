@@ -34,18 +34,9 @@ public:
     DEFINE_SETTINGFACT(rtspTimeout)
     DEFINE_SETTINGFACT(streamEnabled)
     DEFINE_SETTINGFACT(disableWhenDisarmed)
-    DEFINE_SETTINGFACT(lowLatencyMode)
-    DEFINE_SETTINGFACT(forceVideoDecoder)
-
-    enum VideoDecoderOptions {
-        ForceVideoDecoderDefault = 0,
-        ForceVideoDecoderSoftware,
-        ForceVideoDecoderNVIDIA,
-        ForceVideoDecoderVAAPI,
-        ForceVideoDecoderDirectX3D,
-        ForceVideoDecoderVideoToolbox,
-    };
-    Q_ENUM(VideoDecoderOptions)
+    DEFINE_SETTINGFACT(videoResolution)
+    DEFINE_SETTINGFACT(cameraId)
+    DEFINE_SETTINGFACT(saveSdCardEnable)
 
     Q_PROPERTY(bool     streamConfigured        READ streamConfigured       NOTIFY streamConfiguredChanged)
     Q_PROPERTY(QString  rtspVideoSource         READ rtspVideoSource        CONSTANT)
@@ -53,7 +44,10 @@ public:
     Q_PROPERTY(QString  udp265VideoSource       READ udp265VideoSource      CONSTANT)
     Q_PROPERTY(QString  tcpVideoSource          READ tcpVideoSource         CONSTANT)
     Q_PROPERTY(QString  mpegtsVideoSource       READ mpegtsVideoSource      CONSTANT)
-    Q_PROPERTY(QString  disabledVideoSource     READ disabledVideoSource    CONSTANT)
+    Q_PROPERTY(QString  disabledVideoSource     READ disabledVideoSource      CONSTANT)
+    Q_PROPERTY(Fact* videoResolution        READ videoResolution        CONSTANT)
+    Q_PROPERTY(Fact* cameraId               READ cameraId               CONSTANT)
+    Q_PROPERTY(Fact* saveSdCardEnable       READ saveSdCardEnable       CONSTANT)
 
     bool     streamConfigured       ();
     QString  rtspVideoSource        () { return videoSourceRTSP; }
@@ -70,12 +64,9 @@ public:
     static const char* videoSourceRTSP;
     static const char* videoSourceTCP;
     static const char* videoSourceMPEGTS;
-    static const char* videoSource3DRSolo;
-    static const char* videoSourceParrotDiscovery;
-    static const char* videoSourceYuneecMantisG;
-
+    static const char* videoSourceAuto;
 signals:
-    void streamConfiguredChanged    (bool configured);
+    void streamConfiguredChanged    ();
 
 private slots:
     void _configChanged             (QVariant value);

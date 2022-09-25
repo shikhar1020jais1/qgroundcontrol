@@ -10,7 +10,6 @@
 import QtQuick                      2.11
 import QtQuick.Controls             2.4
 import QtQml.Models                 2.1
-import QtQuick.Layouts              1.12
 
 import QGroundControl               1.0
 import QGroundControl.ScreenTools   1.0
@@ -18,8 +17,11 @@ import QGroundControl.Controls      1.0
 import QGroundControl.FlightDisplay 1.0
 import QGroundControl.Vehicle       1.0
 
-ColumnLayout {
-    spacing: 0.8 * ScreenTools.defaultFontPixelWidth
+Rectangle {
+    width:      mainColumn.width  + ScreenTools.defaultFontPixelWidth * 3
+    height:     Math.min(availableHeight - (_verticalMargin * 2), mainColumn.height + ScreenTools.defaultFontPixelHeight)
+    color:      qgcPal.windowShade
+    radius:     3
 
     property real _verticalMargin: ScreenTools.defaultFontPixelHeight / 2
 
@@ -29,9 +31,9 @@ ColumnLayout {
     }
 
     property bool allChecksPassed:  false
-    property var  vehicleCopy:      globals.activeVehicle
+    property var _activeVehicle: QGroundControl.multiVehicleManager.activeVehicle
 
-    onVehicleCopyChanged: {
+    on_ActiveVehicleChanged: {
         if (checkListRepeater.model) {
             checkListRepeater.model.reset()
         }
@@ -39,9 +41,9 @@ ColumnLayout {
 
     onAllChecksPassedChanged: {
         if (allChecksPassed) {
-            globals.activeVehicle.checkListState = Vehicle.CheckListPassed
+            _activeVehicle.checkListState = Vehicle.CheckListPassed
         } else {
-            globals.activeVehicle.checkListState = Vehicle.CheckListFailed
+            _activeVehicle.checkListState = Vehicle.CheckListFailed
         }
     }
 
@@ -71,9 +73,9 @@ ColumnLayout {
 
     //-- Pick a checklist model that matches the current airframe type (if any)
     function _updateModel() {
-        var vehicle = globals.activeVehicle
+        var vehicle = _activeVehicle
         if (!vehicle) {
-            vehicle = QGroundControl.multiVehicleManager.offlineEditingVehicle
+           vehicle = QGroundControl.multiVehicleManager.offlineEditingVehicle
         }
 
         if(vehicle.multiRotor) {
@@ -97,7 +99,7 @@ ColumnLayout {
     }
 
     onVisibleChanged: {
-        if(globals.activeVehicle) {
+        if(_activeVehicle) {
             if(visible) {
                 _updateModel()
             }
@@ -114,43 +116,67 @@ ColumnLayout {
         onTriggered: _handleGroupPassedChanged(index, true /* passed */)
     }
 
-    function groupPassedChanged(index, passed) {
-        if (passed) {
-            delayedGroupPassed.index = index
-            delayedGroupPassed.restart()
-        } else {
-            _handleGroupPassedChanged(index, passed)
-        }
-    }
+    QGCFlickable {
+        id:                     flickable
+        anchors.topMargin:      _verticalMargin
+        anchors.bottomMargin:   _verticalMargin
+        anchors.leftMargin:     _horizontalMargin
+        anchors.rightMargin:    _horizontalMargin
+        anchors.fill:           parent
+        flickableDirection:     Flickable.VerticalFlick
+        contentWidth:           mainColumn.width
+        contentHeight:          mainColumn.height
 
-    // Header/title of checklist
-    RowLayout {
-        Layout.fillWidth:   true
-        height:             1.75 * ScreenTools.defaultFontPixelHeight
-        spacing:            0
+        property real _horizontalMargin:    1.5 * ScreenTools.defaultFontPixelWidth
+        property real _verticalMargin:      0.6 * ScreenTools.defaultFontPixelWidth
 
-        QGCLabel {
-            Layout.fillWidth:   true
-            text:               allChecksPassed ? qsTr("(Passed)") : qsTr("In Progress")
-            font.pointSize:     ScreenTools.mediumFontPointSize
-        }
-        QGCButton {
-            width:              1.2 * ScreenTools.defaultFontPixelHeight
-            height:             1.2 * ScreenTools.defaultFontPixelHeight
-            Layout.alignment:   Qt.AlignVCenter
-            onClicked:          checkListRepeater.model.reset()
+        Column {
+            id:         mainColumn
+            width:      40  * ScreenTools.defaultFontPixelWidth
+            spacing:    0.8 * ScreenTools.defaultFontPixelWidth
 
-            QGCColoredImage {
-                source:         "/qmlimages/MapSyncBlack.svg"
-                color:          qgcPal.buttonText
-                anchors.fill:   parent
+            function groupPassedChanged(index, passed) {
+                if (passed) {
+                    delayedGroupPassed.index = index
+                    delayedGroupPassed.restart()
+                } else {
+                    _handleGroupPassedChanged(index, passed)
+                }
+            }
+
+            // Header/title of checklist
+            Item {
+                width:      parent.width
+                height:     1.75 * ScreenTools.defaultFontPixelHeight
+
+                QGCLabel {
+                    text:                   qsTr("Pre-Flight Checklist %1").arg(allChecksPassed ? qsTr("(passed)") : "")
+                    anchors.left:           parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    font.pointSize:         ScreenTools.mediumFontPointSize
+                }
+                QGCButton {
+                    width:                  1.2 * ScreenTools.defaultFontPixelHeight
+                    height:                 1.2 * ScreenTools.defaultFontPixelHeight
+                    anchors.right:          parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    tooltip:                qsTr("Reset the checklist (e.g. after a vehicle reboot)")
+
+                    onClicked:              checkListRepeater.model.reset()
+
+                    QGCColoredImage {
+                        source:         "/qmlimages/MapSyncBlack.svg"
+                        color:          qgcPal.buttonText
+                        anchors.fill:   parent
+                    }
+                }
+            }
+
+            // All check list items
+            Repeater {
+                id:     checkListRepeater
+                model:  modelContainer.item.model
             }
         }
-    }
-
-    // All check list items
-    Repeater {
-        id:     checkListRepeater
-        model:  modelContainer.item.model
     }
 }

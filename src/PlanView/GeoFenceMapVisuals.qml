@@ -39,8 +39,8 @@ Item {
     property int    _borderWidthExclusion:      0
     property color  _interiorColorExclusion:    "orange"
     property color  _interiorColorInclusion:    "transparent"
-    property real   _interiorOpacityExclusion:  0.2 * opacity
-    property real   _interiorOpacityInclusion:  1 * opacity
+    property real   _interiorOpacityExclusion:  0.2
+    property real   _interiorOpacityInclusion:  1
 
     function addPolygon(inclusionPolygon) {
         // Initial polygon is inset to take 2/3rds space
@@ -104,7 +104,6 @@ Item {
             borderColor:        _borderColor
             interiorColor:      object.inclusion ? _interiorColorInclusion : _interiorColorExclusion
             interiorOpacity:    object.inclusion ? _interiorOpacityInclusion : _interiorOpacityExclusion
-            interactive:        _root.interactive && mapPolygon && mapPolygon.interactive
         }
     }
 
@@ -119,7 +118,6 @@ Item {
             borderColor:        _borderColor
             interiorColor:      object.inclusion ? _interiorColorInclusion : _interiorColorExclusion
             interiorOpacity:    object.inclusion ? _interiorOpacityInclusion : _interiorOpacityExclusion
-            interactive:         _root.interactive && mapCircle && mapCircle.interactive
         }
     }
 
@@ -148,7 +146,7 @@ Item {
         MissionItemIndicatorDrag {
             mapControl:     map
             itemCoordinate: myGeoFenceController.breachReturnPoint
-            visible:        _root.interactive
+            //visible:        itemCoordinate.isValid
 
             onItemCoordinateChanged: myGeoFenceController.breachReturnPoint = itemCoordinate
         }
@@ -164,7 +162,6 @@ Item {
             anchorPoint.y:  sourceItem.anchorPointY
             z:              QGroundControl.zOrderMapItems
             coordinate:     myGeoFenceController.breachReturnPoint
-            opacity:        _root.opacity
 
             sourceItem: MissionItemIndexLabel {
                 label:      qsTr("B", "Breach Return Point item indicator")

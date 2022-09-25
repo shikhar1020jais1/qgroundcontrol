@@ -10,10 +10,6 @@ if(BUILD_TESTING)
 		CorridorScanComplexItemTest.h
 		FWLandingPatternTest.cc
 		FWLandingPatternTest.h
-		LandingComplexItemTest.cc
-		LandingComplexItemTest.h
-		MissionCommandTreeEditorTest.cc
-		MissionCommandTreeEditorTest.h
 		MissionCommandTreeTest.cc
 		MissionCommandTreeTest.h
 		MissionControllerManagerTest.cc
@@ -42,8 +38,6 @@ if(BUILD_TESTING)
 		StructureScanComplexItemTest.h
 		SurveyComplexItemTest.cc
 		SurveyComplexItemTest.h
-		TransectStyleComplexItemTestBase.cc
-		TransectStyleComplexItemTestBase.h
 		TransectStyleComplexItemTest.cc
 		TransectStyleComplexItemTest.h
 		VisualMissionItemTest.cc
@@ -72,10 +66,8 @@ add_library(MissionManager
 	GeoFenceController.h
 	GeoFenceManager.cc
 	GeoFenceManager.h
-	KMLPlanDomDocument.cc
-	KMLPlanDomDocument.h
-	LandingComplexItem.cc
-	LandingComplexItem.h
+	KML.cc
+	KML.h
 	MissionCommandList.cc
 	MissionCommandList.h
 	MissionCommandTree.cc
@@ -133,8 +125,6 @@ add_library(MissionManager
 	TransectStyleComplexItem.h
 	VisualMissionItem.cc
 	VisualMissionItem.h
-	VTOLLandingComplexItem.cc
-	VTOLLandingComplexItem.h
 
 	Section.h # shouldn't be listed here, but isn't named properly for AUTOMOC
 
@@ -142,17 +132,17 @@ add_library(MissionManager
 )
 
 add_custom_Target(MisionManagerQml
-	SOURCES
-		MapLineArrow.qml
-		MissionCommandTreeEditorTestWindow.qml
-		QGCMapCircleVisuals.qml
-		QGCMapPolygonVisuals.qml
-		QGCMapPolylineVisuals.qml
+SOURCES
+	QGCMapCircleVisuals.qml  
+	QGCMapPolygonVisuals.qml  
+	QGCMapPolylineVisuals.qml
 )
 
 target_link_libraries(MissionManager
 	PUBLIC
 		Qt5::Xml
+                qgc
+	PRIVATE
 		qgc
 )
 

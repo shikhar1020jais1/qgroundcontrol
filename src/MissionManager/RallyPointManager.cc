@@ -14,13 +14,15 @@
 QGC_LOGGING_CATEGORY(RallyPointManagerLog, "RallyPointManagerLog")
 
 RallyPointManager::RallyPointManager(Vehicle* vehicle)
-    : PlanManager(vehicle, MAV_MISSION_TYPE_RALLY)
+    : QObject(vehicle)
+    , _vehicle(vehicle)
+    , _planManager              (vehicle, MAV_MISSION_TYPE_RALLY)
 {
-    connect(this, &PlanManager::inProgressChanged,          this, &RallyPointManager::inProgressChanged);
-    connect(this, &PlanManager::error,                      this, &RallyPointManager::error);
-    connect(this, &PlanManager::removeAllComplete,          this, &RallyPointManager::removeAllComplete);
-    connect(this, &PlanManager::sendComplete,               this, &RallyPointManager::_sendComplete);
-    connect(this, &PlanManager::newMissionItemsAvailable,   this, &RallyPointManager::_planManagerLoadComplete);
+    connect(&_planManager, &PlanManager::inProgressChanged,         this, &RallyPointManager::inProgressChanged);
+    connect(&_planManager, &PlanManager::error,                     this, &RallyPointManager::error);
+    connect(&_planManager, &PlanManager::removeAllComplete,         this, &RallyPointManager::removeAllComplete);
+    connect(&_planManager, &PlanManager::sendComplete,              this, &RallyPointManager::_sendComplete);
+    connect(&_planManager, &PlanManager::newMissionItemsAvailable,  this, &RallyPointManager::_planManagerLoadComplete);
 }
 
 
@@ -34,6 +36,11 @@ void RallyPointManager::_sendError(ErrorCode_t errorCode, const QString& errorMs
     qCDebug(RallyPointManagerLog) << "Sending error" << errorCode << errorMsg;
 
     emit error(errorCode, errorMsg);
+}
+
+void RallyPointManager::loadFromVehicle(void)
+{
+     _planManager.loadFromVehicle();
 }
 
 void RallyPointManager::sendToVehicle(const QList<QGeoCoordinate>& rgPoints)
@@ -60,13 +67,13 @@ void RallyPointManager::sendToVehicle(const QList<QGeoCoordinate>& rgPoints)
     }
 
     // Plan manager takes control of MissionItems, so no need to delete
-    writeMissionItems(rallyItems);
+    _planManager.writeMissionItems(rallyItems);
 }
 
 void RallyPointManager::removeAll(void)
 {
     _rgPoints.clear();
-    PlanManager::removeAll();
+    _planManager.removeAll();
 }
 
 bool RallyPointManager::supported(void) const
@@ -80,7 +87,7 @@ void RallyPointManager::_planManagerLoadComplete(bool removeAllRequested)
 
     Q_UNUSED(removeAllRequested);
 
-    const QList<MissionItem*>& rallyItems = missionItems();
+    const QList<MissionItem*>& rallyItems = _planManager.missionItems();
 
     for (int i=0; i<rallyItems.count(); i++) {
         MissionItem* item = rallyItems[i];
@@ -89,6 +96,8 @@ void RallyPointManager::_planManagerLoadComplete(bool removeAllRequested)
 
         if (command == MAV_CMD_NAV_RALLY_POINT) {
             _rgPoints.append(QGeoCoordinate(item->param5(), item->param6(), item->param7()));
+
+
         } else {
             qCDebug(RallyPointManagerLog) << "RallyPointManager load: Unsupported command %1" << item->command();
             break;

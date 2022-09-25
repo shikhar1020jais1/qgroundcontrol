@@ -53,8 +53,7 @@
 #include <QFile>
 #include "TerrainTile.h"
 
-int         QGeoTiledMapReplyQGC::_requestCount = 0;
-QByteArray  QGeoTiledMapReplyQGC::_bingNoTileImage;
+int QGeoTiledMapReplyQGC::_requestCount = 0;
 
 //-----------------------------------------------------------------------------
 QGeoTiledMapReplyQGC::QGeoTiledMapReplyQGC(QNetworkAccessManager *networkManager, const QNetworkRequest &request, const QGeoTileSpec &spec, QObject *parent)
@@ -63,12 +62,6 @@ QGeoTiledMapReplyQGC::QGeoTiledMapReplyQGC(QNetworkAccessManager *networkManager
     , _request(request)
     , _networkManager(networkManager)
 {
-    if (_bingNoTileImage.count() == 0) {
-        QFile file(":/res/BingNoTileBytes.dat");
-        file.open(QFile::ReadOnly);
-        _bingNoTileImage = file.readAll();
-        file.close();
-    }
     if(_request.url().isEmpty()) {
         if(!_badMapbox.size()) {
             QFile b(":/res/notile.png");
@@ -129,11 +122,10 @@ QGeoTiledMapReplyQGC::networkReplyFinished()
         return;
     }
     QByteArray a = _reply->readAll();
-    UrlFactory* urlFactory = getQGCMapEngine()->urlFactory();
-    QString format = urlFactory->getImageFormat(tileSpec().mapId(), a);
+    QString format = getQGCMapEngine()->urlFactory()->getImageFormat(tileSpec().mapId(), a);
     //-- Test for a specialized, elevation data (not map tile)
     if( getQGCMapEngine()->urlFactory()->isElevation(tileSpec().mapId())){
-        a = TerrainTile::serializeFromAirMapJson(a);
+        a = TerrainTile::serialize(a);
         //-- Cache it if valid
         if(!a.isEmpty()) {
             getQGCMapEngine()->cacheTile(
@@ -143,20 +135,11 @@ QGeoTiledMapReplyQGC::networkReplyFinished()
         }
         emit terrainDone(a, QNetworkReply::NoError);
     } else {
-        MapProvider* mapProvider = urlFactory->getMapProviderFromId(tileSpec().mapId());
-        if (mapProvider && mapProvider->_isBingProvider() && a.size() && _bingNoTileImage.size() && a == _bingNoTileImage) {
-            // Bing doesn't return an error if you request a tile above supported zoom level
-            // It instead returns an image of a missing tile graphic. We need to detect that
-            // and error out so Qt will deal with zooming correctly even if it doesn't have the tile.
-            // This allows us to zoom up to level 23 even though the tiles don't actually exist
-            setError(QGeoTiledMapReply::CommunicationError, "Bing tile above zoom level");
-        } else {
-            //-- This is a map tile. Process and cache it if valid.
-            setMapImageData(a);
-            if(!format.isEmpty()) {
-                setMapImageFormat(format);
-                getQGCMapEngine()->cacheTile(getQGCMapEngine()->urlFactory()->getTypeFromId(tileSpec().mapId()), tileSpec().x(), tileSpec().y(), tileSpec().zoom(), a, format);
-            }
+        //-- This is a map tile. Process and cache it if valid.
+        setMapImageData(a);
+        if(!format.isEmpty()) {
+            setMapImageFormat(format);
+            getQGCMapEngine()->cacheTile(getQGCMapEngine()->urlFactory()->getTypeFromId(tileSpec().mapId()), tileSpec().x(), tileSpec().y(), tileSpec().zoom(), a, format);
         }
         setFinished(true);
     }

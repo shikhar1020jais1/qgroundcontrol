@@ -28,20 +28,22 @@ const size_t MissionItemTest::_cTestCases = sizeof(_rgTestCases)/sizeof(_rgTestC
 #endif
 
 MissionItemTest::MissionItemTest(void)
-    : _masterController(nullptr)
+    : _offlineVehicle(nullptr)
 {
 }
 
 void MissionItemTest::init(void)
 {
     UnitTest::init();
-    _masterController = new PlanMasterController(this);
+    _offlineVehicle = new Vehicle(MAV_AUTOPILOT_PX4,
+                                  MAV_TYPE_QUADROTOR,
+                                  qgcApp()->toolbox()->firmwarePluginManager(),
+                                  this);
 }
 
 void MissionItemTest::cleanup(void)
 {
-    delete _masterController;
-    _masterController = nullptr;
+    _offlineVehicle->deleteLater();
     UnitTest::cleanup();
 }
 
@@ -161,11 +163,11 @@ void MissionItemTest::_testFactSignals(void)
     QSignalSpy commandSpy(&missionItem._commandFact, SIGNAL(valueChanged(QVariant)));
     missionItem.setCommand(MAV_CMD_NAV_WAYPOINT);
     QCOMPARE(commandSpy.count(), 0);
-    missionItem.setCommand(MAV_CMD_NAV_LAND);
+    missionItem.setCommand(MAV_CMD_NAV_ALTITUDE_WAIT);
     QCOMPARE(commandSpy.count(), 1);
     QList<QVariant> arguments = commandSpy.takeFirst();
     QCOMPARE(arguments.count(), 1);
-    QCOMPARE((MAV_CMD)arguments.at(0).toInt(), MAV_CMD_NAV_LAND);
+    QCOMPARE((MAV_CMD)arguments.at(0).toInt(), MAV_CMD_NAV_ALTITUDE_WAIT);
 
     // frame
     QSignalSpy frameSpy(&missionItem._frameFact, SIGNAL(valueChanged(QVariant)));
@@ -238,7 +240,7 @@ void MissionItemTest::_testFactSignals(void)
     QCOMPARE(arguments.at(0).toDouble(), 8.0);
 }
 
-void MissionItemTest::_checkExpectedMissionItem(const MissionItem& missionItem, bool allNaNs) const
+void MissionItemTest::_checkExpectedMissionItem(const MissionItem& missionItem, bool allNaNs)
 {
     QCOMPARE(missionItem.sequenceNumber(), _seq);
     QCOMPARE(missionItem.isCurrentItem(), false);
@@ -279,7 +281,7 @@ void MissionItemTest::_testSimpleLoadFromStream(void)
 {
     // We specifically test SimpleMissionItem loading as well since it has additional
     // signalling which can affect values.
-    SimpleMissionItem simpleMissionItem(_masterController, false /* flyView */, false /* forLoad */);
+    SimpleMissionItem simpleMissionItem(_offlineVehicle, false /* flyView */, false /* forLoad */, nullptr);
 
     QString testString("10\t0\t3\t80\t10\t20\t30\t40\t-10\t-20\t-30\t1\r\n");
     QTextStream testStream(&testString, QIODevice::ReadOnly);
@@ -449,7 +451,7 @@ void MissionItemTest::_testSimpleLoadFromJson(void)
     // We specifically test SimpleMissionItem loading as well since it has additional
     // signalling which can affect values.
 
-    SimpleMissionItem simpleMissionItem(_masterController, false /* flyView */, false /* forLoad */);
+    SimpleMissionItem simpleMissionItem(_offlineVehicle, false /* flyView */, false /* forLoad */, nullptr);
     QString     errorString;
     QJsonArray  coordinateArray;
     QJsonObject jsonObject;

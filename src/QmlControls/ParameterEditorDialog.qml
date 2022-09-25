@@ -8,9 +8,8 @@
  ****************************************************************************/
 
 import QtQuick          2.3
-import QtQuick.Controls 2.15
-import QtQuick.Layouts  1.15
-import QtQuick.Dialogs  1.3
+import QtQuick.Controls 1.2
+import QtQuick.Layouts  1.2
 
 import QGroundControl               1.0
 import QGroundControl.Controls      1.0
@@ -20,10 +19,9 @@ import QGroundControl.FactSystem    1.0
 import QGroundControl.FactControls  1.0
 import QGroundControl.ScreenTools   1.0
 
-QGCPopupDialog {
-    id:         root
-    title:      qsTr("Parameter Editor")
-    buttons:    StandardButton.Cancel | StandardButton.Save
+QGCViewDialog {
+    id:     root
+    focus:  true
 
     property Fact   fact
     property bool   showRCToParam:  false
@@ -43,33 +41,35 @@ QGCPopupDialog {
 
     QGCPalette { id: qgcPal; colorGroupEnabled: true }
 
-    onAccepted: {
+    function accept() {
         if (bitmaskColumn.visible && !manualEntry.checked) {
             fact.value = bitmaskValue();
             fact.valueChanged(fact.value)
             valueChanged()
+            hideDialog();
         } else if (factCombo.visible && !manualEntry.checked) {
             fact.enumIndex = factCombo.currentIndex
             valueChanged()
+            hideDialog()
         } else {
             var errorString = fact.validate(valueField.text, forceSave.checked)
             if (errorString === "") {
                 fact.value = valueField.text
                 fact.valueChanged(fact.value)
                 valueChanged()
+                hideDialog()
             } else {
                 validationError.text = errorString
                 if (_allowForceSave) {
                     forceSave.visible = true
                 }
-                preventClose = true
             }
         }
     }
 
     function reject() {
         fact.valueChanged(fact.value)
-        close()
+        hideDialog();
     }
 
     function bitmaskValue() {
@@ -92,40 +92,61 @@ QGCPopupDialog {
         }
     }
 
-    ColumnLayout {
-        width:      editRow.width
-        spacing:    globals.defaultTextHeight
+    QGCFlickable {
+        id:                 flickable
+        anchors.fill:       parent
+        contentHeight:      _column.y + _column.height
+        flickableDirection: Flickable.VerticalFlick
 
-        QGCLabel {
-            id:                 validationError
-            Layout.fillWidth:   true
-            wrapMode:           Text.WordWrap
-            color:              qgcPal.warningText
-            visible:            text !== ""
-        }
+        Column {
+            id:             _column
+            spacing:        defaultTextHeight
+            anchors.left:   parent.left
+            anchors.right:  parent.right
 
-        RowLayout {
-            id:         editRow
-            spacing:    ScreenTools.defaultFontPixelWidth
+            QGCLabel {
+                id:         validationError
+                width:      parent.width
+                wrapMode:   Text.WordWrap
+                color:      qgcPal.warningText
+            }
 
-            QGCTextField {
-                id:                 valueField
-                width:              _editFieldWidth
-                text:               validate ? validateValue : fact.valueString
-                unitsLabel:         fact.units
-                showUnits:          fact.units != ""
-                focus:              setFocus
-                inputMethodHints:   (fact.typeIsString || ScreenTools.isiOS) ?
-                                        Qt.ImhNone :                // iOS numeric keyboard has no done button, we can't use it
-                                        Qt.ImhFormattedNumbersOnly  // Forces use of virtual numeric keyboard
-                visible:            fact.enumStrings.length === 0 || validate || manualEntry.checked
+            RowLayout {
+                spacing:        ScreenTools.defaultFontPixelWidth
+                anchors.left:   parent.left
+                anchors.right:  parent.right
+
+                QGCTextField {
+                    id:                 valueField
+                    text:               validate ? validateValue : fact.valueString
+                    visible:            fact.enumStrings.length === 0 || validate || manualEntry.checked
+                    unitsLabel:         fact.units
+                    showUnits:          fact.units != ""
+                    Layout.fillWidth:   true
+                    focus:              setFocus
+                    inputMethodHints:   (fact.typeIsString || ScreenTools.isiOS) ?
+                                          Qt.ImhNone :                // iOS numeric keyboard has no done button, we can't use it
+                                          Qt.ImhFormattedNumbersOnly  // Forces use of virtual numeric keyboard
+                }
+
+                QGCButton {
+                    visible:    _allowDefaultReset
+                    text:       qsTr("Reset to default")
+
+                    onClicked: {
+                        fact.value = fact.defaultValue
+                        fact.valueChanged(fact.value)
+                        hideDialog()
+                    }
+                }
             }
 
             QGCComboBox {
-                id:         factCombo
-                width:      _editFieldWidth
-                model:      fact.enumStrings
-                visible:    _showCombo
+                id:             factCombo
+                anchors.left:   parent.left
+                anchors.right:  parent.right
+                visible:        _showCombo
+                model:          fact.enumStrings
 
                 property bool _showCombo: fact.enumStrings.length !== 0 && fact.bitmaskStrings.length === 0 && !validate
 
@@ -144,131 +165,132 @@ QGCPopupDialog {
                 }
             }
 
-            QGCButton {
-                visible:    _allowDefaultReset
-                text:       qsTr("Reset To Default")
+            Column {
+                id:         bitmaskColumn
+                spacing:    ScreenTools.defaultFontPixelHeight / 2
+                visible:    fact.bitmaskStrings.length > 0 ? true : false;
 
-                onClicked: {
-                    fact.value = fact.defaultValue
-                    fact.valueChanged(fact.value)
-                    close()
-                }
-            }
-        }
+                Repeater {
+                    id:     bitmaskRepeater
+                    model:  fact.bitmaskStrings
 
-        Column {
-            id:         bitmaskColumn
-            spacing:    ScreenTools.defaultFontPixelHeight / 2
-            visible:    fact.bitmaskStrings.length > 0
+                    delegate : QGCCheckBox {
+                        text : modelData
+                        checked : fact.value & fact.bitmaskValues[index]
 
-            Repeater {
-                id:     bitmaskRepeater
-                model:  fact.bitmaskStrings
-
-                delegate : QGCCheckBox {
-                    text : modelData
-                    checked : fact.value & fact.bitmaskValues[index]
-
-                    onClicked: {
-                        valueField.text = bitmaskValue()
+                        onClicked: {
+                            valueField.text = bitmaskValue()
+                        }
                     }
                 }
             }
-        }
-
-        QGCLabel {
-            Layout.fillWidth:   true
-            wrapMode:           Text.WordWrap
-            visible:            !longDescriptionLabel.visible
-            text:               fact.shortDescription
-        }
-
-        QGCLabel {
-            id:                 longDescriptionLabel
-            Layout.fillWidth:   true
-            wrapMode:           Text.WordWrap
-            visible:            fact.longDescription != ""
-            text:               fact.longDescription
-        }
-
-        Row {
-            spacing: ScreenTools.defaultFontPixelWidth
 
             QGCLabel {
-                id:         minValueDisplay
-                text:       qsTr("Min: ") + fact.minString
-                visible:    !fact.minIsDefaultForType
+                width:      parent.width
+                wrapMode:   Text.WordWrap
+                visible:    !longDescriptionLabel.visible
+                text:       fact.shortDescription
             }
 
             QGCLabel {
-                text:       qsTr("Max: ") + fact.maxString
-                visible:    !fact.maxIsDefaultForType
+                id:         longDescriptionLabel
+                width:      parent.width
+                wrapMode:   Text.WordWrap
+                visible:    fact.longDescription != ""
+                text:       fact.longDescription
+            }
+
+            Row {
+                spacing: ScreenTools.defaultFontPixelWidth
+
+                QGCLabel {
+                    id:         minValueDisplay
+                    text:       qsTr("Min: ") + fact.minString
+                    visible:    !fact.minIsDefaultForType
+                }
+
+                QGCLabel {
+                    text:       qsTr("Max: ") + fact.maxString
+                    visible:    !fact.maxIsDefaultForType
+                }
+
+                QGCLabel {
+                    text:       qsTr("Default: ") + fact.defaultValueString
+                    visible:    _allowDefaultReset
+                }
             }
 
             QGCLabel {
-                text:       qsTr("Default: ") + fact.defaultValueString
-                visible:    _allowDefaultReset
+                text:       qsTr("Parameter name: ") + fact.name
+                visible:    fact.componentId > 0 // > 0 means it's a parameter fact
             }
-        }
 
-        QGCLabel {
-            text:       qsTr("Parameter name: ") + fact.name
-            visible:    fact.componentId > 0 // > 0 means it's a parameter fact
-        }
-
-        QGCLabel {
-            visible:    fact.vehicleRebootRequired
-            text:       qsTr("Vehicle reboot required after change")
-        }
-
-        QGCLabel {
-            visible:    fact.qgcRebootRequired
-            text:       qsTr("Application restart required after change")
-        }
-
-        QGCLabel {
-            Layout.fillWidth:   true
-            wrapMode:   Text.WordWrap
-            text:       qsTr("Warning: Modifying values while vehicle is in flight can lead to vehicle instability and possible vehicle loss. ") +
-                        qsTr("Make sure you know what you are doing and double-check your values before Save!")
-            visible:    fact.componentId != -1
-        }
-
-        QGCCheckBox {
-            id:         forceSave
-            visible:    false
-            text:       qsTr("Force save (dangerous!)")
-        }
-
-        QGCCheckBox {
-            id:         _advanced
-            text:       qsTr("Advanced settings")
-            visible:    showRCToParam || factCombo.visible || bitmaskColumn.visible
-        }
-
-        // Checkbox to allow manual entry of enumerated or bitmask parameters
-        QGCCheckBox {
-            id:         manualEntry
-            visible:    _advanced.checked && (factCombo.visible || bitmaskColumn.visible)
-            text:       qsTr("Manual Entry")
-
-            onClicked: {
-                valueField.text = fact.valueString
+            QGCLabel {
+                visible:    fact.vehicleRebootRequired
+                text:       "Vehicle reboot required after change"
             }
-        }
 
-        QGCButton {
-            text:       qsTr("Set RC to Param")
-            visible:    _advanced.checked && !validate && showRCToParam
-            onClicked:  rcToParamDialog.createObject(mainWindow).open()
-        }
-    } // Column
+            QGCLabel {
+                visible:    fact.qgcRebootRequired
+                text:       "Application restart required after change"
+            }
 
-    Component {
-        id: rcToParamDialog
+            QGCLabel {
+                width:      parent.width
+                wrapMode:   Text.WordWrap
+                text:       qsTr("Warning: Modifying values while vehicle is in flight can lead to vehicle instability and possible vehicle loss. ") +
+                            qsTr("Make sure you know what you are doing and double-check your values before Save!")
+                visible:    fact.componentId != -1
+            }
 
-        RCToParamDialog {
-            tuningFact: fact
-        }
+            QGCCheckBox {
+                id:         forceSave
+                visible:    false
+                text:       qsTr("Force save (dangerous!)")
+            }
+
+            Row {
+                width:      parent.width
+                spacing:    ScreenTools.defaultFontPixelWidth / 2
+                visible:    showRCToParam || factCombo.visible || bitmaskColumn.visible
+
+                Rectangle {
+                    height: 1
+                    width:  ScreenTools.defaultFontPixelWidth * 5
+                    color:  qgcPal.text
+                    anchors.verticalCenter: _advanced.verticalCenter
+                }
+
+                QGCCheckBox {
+                    id:     _advanced
+                    text:   qsTr("Advanced settings")
+                }
+
+                Rectangle {
+                    height: 1
+                    width:  ScreenTools.defaultFontPixelWidth * 5
+                    color:  qgcPal.text
+                    anchors.verticalCenter: _advanced.verticalCenter
+                }
+            }
+
+            // Checkbox to allow manual entry of enumerated or bitmask parameters
+            QGCCheckBox {
+                id:         manualEntry
+                visible:    _advanced.checked && (factCombo.visible || bitmaskColumn.visible)
+                text:       qsTr("Manual Entry")
+
+                onClicked: {
+                    valueField.text = fact.valueString
+                }
+            }
+
+            QGCButton {
+                text:           qsTr("Set RC to Param...")
+                width:          _editFieldWidth
+                visible:        _advanced.checked && !validate && showRCToParam
+                onClicked:      controller.setRCToParam(fact.name)
+            }
+        } // Column
     }
-}
+} // QGCViewDialog

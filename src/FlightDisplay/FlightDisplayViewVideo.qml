@@ -23,13 +23,11 @@ import QGroundControl.Controllers       1.0
 Item {
     id:     root
     clip:   true
-
-    property bool useSmallFont: true
-
     property double _ar:                QGroundControl.videoManager.aspectRatio
     property bool   _showGrid:          QGroundControl.settingsManager.videoSettings.gridLines.rawValue > 0
-    property var    _dynamicCameras:    globals.activeVehicle ? globals.activeVehicle.cameraManager : null
-    property bool   _connected:         globals.activeVehicle ? !globals.activeVehicle.communicationLost : false
+    property var    _videoReceiver:     QGroundControl.videoManager.videoReceiver
+    property var    _dynamicCameras:    activeVehicle ? activeVehicle.dynamicCameras : null
+    property bool   _connected:         activeVehicle ? !activeVehicle.connectionLost : false
     property int    _curCameraIndex:    _dynamicCameras ? _dynamicCameras.currentCamera : 0
     property bool   _isCamera:          _dynamicCameras ? _dynamicCameras.cameras.count > 0 : false
     property var    _camera:            _isCamera ? _dynamicCameras.cameras.get(_curCameraIndex) : null
@@ -42,19 +40,25 @@ Item {
         id:             noVideo
         anchors.fill:   parent
         color:          Qt.rgba(0,0,0,0.75)
-        visible:        !(QGroundControl.videoManager.decoding)
+        visible:        !(_videoReceiver && _videoReceiver.videoRunning)
         QGCLabel {
             text:               QGroundControl.settingsManager.videoSettings.streamEnabled.rawValue ? qsTr("WAITING FOR VIDEO") : qsTr("VIDEO DISABLED")
             font.family:        ScreenTools.demiboldFontFamily
             color:              "white"
-            font.pointSize:     useSmallFont ? ScreenTools.smallFontPointSize : ScreenTools.largeFontPointSize
+            font.pointSize:     mainIsMap ? ScreenTools.smallFontPointSize : ScreenTools.largeFontPointSize
             anchors.centerIn:   parent
+        }
+        MouseArea {
+            anchors.fill: parent
+            onDoubleClicked: {
+                QGroundControl.videoManager.fullScreen = !QGroundControl.videoManager.fullScreen
+            }
         }
     }
     Rectangle {
         anchors.fill:   parent
         color:          "black"
-        visible:        QGroundControl.videoManager.decoding
+        visible:        _videoReceiver && _videoReceiver.videoRunning
         function getWidth() {
             //-- Fit Width or Stretch
             if(_fitMode === 0 || _fitMode === 2) {
@@ -76,12 +80,13 @@ Item {
             QGCVideoBackground {
                 id:             videoContent
                 objectName:     "videoContent"
+                receiver:       _videoReceiver
 
                 Connections {
-                    target: QGroundControl.videoManager
-                    function onImageFileChanged() {
+                    target:         _videoReceiver
+                    onImageFileChanged: {
                         videoContent.grabToImage(function(result) {
-                            if (!result.saveToFile(QGroundControl.videoManager.imageFile)) {
+                            if (!result.saveToFile(_videoReceiver.imageFile)) {
                                 console.error('Error capturing video frame');
                             }
                         });
@@ -125,7 +130,7 @@ Item {
             height:             parent.getHeight()
             width:              parent.getWidth()
             anchors.centerIn:   parent
-            visible:            QGroundControl.videoManager.decoding
+            visible:            _videoReceiver && _videoReceiver.videoRunning
             sourceComponent:    videoBackgroundComponent
 
             property bool videoDisabled: QGroundControl.settingsManager.videoSettings.videoSource.rawValue === QGroundControl.settingsManager.videoSettings.disabledVideoSource
@@ -168,6 +173,13 @@ Item {
                 anchors.fill:   parent
                 receiver:       QGroundControl.videoManager.thermalVideoReceiver
                 opacity:        _camera ? (_camera.thermalMode === QGCCameraControl.THERMAL_BLEND ? _camera.thermalOpacity / 100 : 1.0) : 0
+            }
+        }
+        //-- Full screen toggle
+        MouseArea {
+            anchors.fill: parent
+            onDoubleClicked: {
+                QGroundControl.videoManager.fullScreen = !QGroundControl.videoManager.fullScreen
             }
         }
         //-- Zoom

@@ -36,11 +36,7 @@ Item {
     property var    _settings:          _settingsManager ? _settingsManager.offlineMapsSettings : null
     property var    _fmSettings:        _settingsManager ? _settingsManager.flightMapSettings : null
     property Fact   _mapboxFact:        _settingsManager ? _settingsManager.appSettings.mapboxToken : null
-    property Fact   _mapboxAccountFact: _settingsManager ? _settingsManager.appSettings.mapboxAccount : null
-    property Fact   _mapboxStyleFact:   _settingsManager ? _settingsManager.appSettings.mapboxStyle : null
     property Fact   _esriFact:          _settingsManager ? _settingsManager.appSettings.esriToken : null
-    property Fact   _customURLFact:     _settingsManager ? _settingsManager.appSettings.customURL : null
-    property Fact   _vworldFact:        _settingsManager ? _settingsManager.appSettings.vworldToken : null
 
     property string mapType:            _fmSettings ? (_fmSettings.mapProvider.value + " " + _fmSettings.mapType.value) : ""
     property bool   isMapInteractive:   false
@@ -214,6 +210,7 @@ Item {
         id:             fileDialog
         folder:         QGroundControl.settingsManager.appSettings.missionSavePath
         nameFilters:    ["Tile Sets (*.qgctiledb)"]
+        fileExtension:  "qgctiledb"
 
         onAcceptedForSave: {
             if (QGroundControl.mapEngineManager.exportSets(file)) {
@@ -247,169 +244,113 @@ Item {
     Component {
         id: optionsDialogComponent
 
-        QGCPopupDialog {
-            title:      qsTr("Offline Maps Options")
-            buttons:    StandardButton.Save | StandardButton.Cancel
+        QGCViewDialog {
+            id: optionDialog
 
-            onAccepted: {
+            function accept() {
                 QGroundControl.mapEngineManager.maxDiskCache = parseInt(maxCacheSize.text)
                 QGroundControl.mapEngineManager.maxMemCache  = parseInt(maxCacheMemSize.text)
+                optionDialog.hideDialog()
             }
 
-            Column {
-                spacing: ScreenTools.defaultFontPixelHeight / 2
+            QGCFlickable {
+                anchors.fill:   parent
+                contentHeight:  optionsColumn.height
 
-                QGCLabel { text:       qsTr("Max Cache Disk Size (MB):") }
+                Column {
+                    id:                 optionsColumn
+                    anchors.margins:    ScreenTools.defaultFontPixelWidth
+                    anchors.left:       parent.left
+                    anchors.right:      parent.right
+                    anchors.top:        parent.top
+                    spacing:            ScreenTools.defaultFontPixelHeight / 2
 
-                QGCTextField {
-                    id:                 maxCacheSize
-                    maximumLength:      6
-                    inputMethodHints:   Qt.ImhDigitsOnly
-                    validator:          IntValidator {bottom: 1; top: 262144;}
-                    text:               QGroundControl.mapEngineManager.maxDiskCache
-                }
+                    QGCLabel { text:       qsTr("Max Cache Disk Size (MB):") }
 
-                Item { width: 1; height: 1 }
+                    QGCTextField {
+                        id:                 maxCacheSize
+                        maximumLength:      6
+                        inputMethodHints:   Qt.ImhDigitsOnly
+                        validator:          IntValidator {bottom: 1; top: 262144;}
+                        text:               QGroundControl.mapEngineManager.maxDiskCache
+                    }
 
-                QGCLabel {
-                    anchors.left:   parent.left
-                    anchors.right:  parent.right
-                    wrapMode:       Text.WordWrap
-                    text:           qsTr("Max Cache Memory Size (MB):")
-                }
+                    Item { width: 1; height: 1 }
 
-                QGCTextField {
-                    id:                 maxCacheMemSize
-                    maximumLength:      4
-                    inputMethodHints:   Qt.ImhDigitsOnly
-                    validator:          IntValidator {bottom: 1; top: 1024;}
-                    text:               QGroundControl.mapEngineManager.maxMemCache
-                }
+                    QGCLabel {
+                        anchors.left:   parent.left
+                        anchors.right:  parent.right
+                        wrapMode:       Text.WordWrap
+                        text:           qsTr("Max Cache Memory Size (MB):")
+                    }
 
-                QGCLabel {
-                    anchors.left:   parent.left
-                    anchors.right:  parent.right
-                    wrapMode:       Text.WordWrap
-                    font.pointSize: _adjustableFontPointSize
-                    text:           qsTr("Memory cache changes require a restart to take effect.")
-                }
+                    QGCTextField {
+                        id:                 maxCacheMemSize
+                        maximumLength:      4
+                        inputMethodHints:   Qt.ImhDigitsOnly
+                        validator:          IntValidator {bottom: 1; top: 1024;}
+                        text:               QGroundControl.mapEngineManager.maxMemCache
+                    }
 
-                Item { width: 1; height: 1; visible: _mapboxFact ? _mapboxFact.visible : false }
-                QGCLabel { text: qsTr("Mapbox Access Token"); visible: _mapboxFact ? _mapboxFact.visible : false }
-                FactTextField {
-                    fact:               _mapboxFact
-                    visible:            _mapboxFact ? _mapboxFact.visible : false
-                    maximumLength:      256
-                    width:              ScreenTools.defaultFontPixelWidth * 30
-                }
-                QGCLabel {
-                    anchors.left:   parent.left
-                    anchors.right:  parent.right
-                    wrapMode:       Text.WordWrap
-                    text:           qsTr("To enable Mapbox maps, enter your access token.")
-                    visible:        _mapboxFact ? _mapboxFact.visible : false
-                    font.pointSize: _adjustableFontPointSize
-                }
+                    QGCLabel {
+                        anchors.left:   parent.left
+                        anchors.right:  parent.right
+                        wrapMode:       Text.WordWrap
+                        font.pointSize: _adjustableFontPointSize
+                        text:           qsTr("Memory cache changes require a restart to take effect.")
+                    }
 
-                Item { width: 1; height: 1; visible: _mapboxAccountFact ? _mapboxAccountFact.visible : false }
-                QGCLabel { text: qsTr("Mapbox User Name"); visible: _mapboxAccountFact ? _mapboxAccountFact.visible : false }
-                FactTextField {
-                    fact:               _mapboxAccountFact
-                    visible:            _mapboxAccountFact ? _mapboxAccountFact.visible : false
-                    maximumLength:      256
-                    width:              ScreenTools.defaultFontPixelWidth * 30
-                }
-                QGCLabel {
-                    anchors.left:   parent.left
-                    anchors.right:  parent.right
-                    wrapMode:       Text.WordWrap
-                    text:           qsTr("To enable custom Mapbox styles, enter your account name.")
-                    visible:        _mapboxAccountFact ? _mapboxAccountFact.visible : false
-                    font.pointSize: _adjustableFontPointSize
-                }
+                    Item { width: 1; height: 1; visible: _mapboxFact ? _mapboxFact.visible : false }
+                    QGCLabel { text: qsTr("Mapbox Access Token"); visible: _mapboxFact ? _mapboxFact.visible : false }
+                    FactTextField {
+                        fact:               _mapboxFact
+                        visible:            _mapboxFact ? _mapboxFact.visible : false
+                        maximumLength:      256
+                        width:              ScreenTools.defaultFontPixelWidth * 30
+                    }
+                    QGCLabel {
+                        anchors.left:   parent.left
+                        anchors.right:  parent.right
+                        wrapMode:       Text.WordWrap
+                        text:           qsTr("To enable Mapbox maps, enter your access token.")
+                        visible:        _mapboxFact ? _mapboxFact.visible : false
+                        font.pointSize: _adjustableFontPointSize
+                    }
 
-                Item { width: 1; height: 1; visible: _mapboxStyleFact ? _mapboxStyleFact.visible : false }
-                QGCLabel { text: qsTr("Mapbox Style ID"); visible: _mapboxStyleFact ? _mapboxStyleFact.visible : false }
-                FactTextField {
-                    fact:               _mapboxStyleFact
-                    visible:            _mapboxStyleFact ? _mapboxStyleFact.visible : false
-                    maximumLength:      256
-                    width:              ScreenTools.defaultFontPixelWidth * 30
-                }
-                QGCLabel {
-                    anchors.left:   parent.left
-                    anchors.right:  parent.right
-                    wrapMode:       Text.WordWrap
-                    text:           qsTr("To enable custom Mapbox styles, enter your style ID.")
-                    visible:        _mapboxStyleFact ? _mapboxStyleFact.visible : false
-                    font.pointSize: _adjustableFontPointSize
-                }
-
-                Item { width: 1; height: 1; visible: _esriFact ? _esriFact.visible : false }
-                QGCLabel { text: qsTr("Esri Access Token"); visible: _esriFact ? _esriFact.visible : false }
-                FactTextField {
-                    fact:               _esriFact
-                    visible:            _esriFact ? _esriFact.visible : false
-                    maximumLength:      256
-                    width:              ScreenTools.defaultFontPixelWidth * 30
-                }
-                QGCLabel {
-                    anchors.left:   parent.left
-                    anchors.right:  parent.right
-                    wrapMode:       Text.WordWrap
-                    text:           qsTr("To enable Esri maps, enter your access token.")
-                    visible:        _esriFact ? _esriFact.visible : false
-                    font.pointSize: _adjustableFontPointSize
-                }
-
-                Item { width: 1; height: 1; visible: _vworldFact ? _vworldFact.visible : false }
-                QGCLabel { text: qsTr("VWorld Access Token"); visible: _vworldFact ? _vworldFact.visible : false }
-                FactTextField {
-                    fact:               _vworldFact
-                    visible:            _vworldFact ? _vworldFact.visible : false
-                    maximumLength:      256
-                    width:              ScreenTools.defaultFontPixelWidth * 30
-                }
-                QGCLabel {
-                    anchors.left:   parent.left
-                    anchors.right:  parent.right
-                    wrapMode:       Text.WordWrap
-                    text:           qsTr("To enable VWorld maps, enter your access token.")
-                    visible:        _vworldFact ? _vworldFact.visible : false
-                    font.pointSize: _adjustableFontPointSize
-                }
-
-                Item { width: 1; height: 1; visible: _customURLFact ? _customURLFact.visible : false }
-                QGCLabel { text: qsTr("Custom Map URL"); visible: _customURLFact ? _customURLFact.visible : false }
-                FactTextField {
-                    fact:               _customURLFact
-                    visible:            _customURLFact ? _customURLFact.visible : false
-                    maximumLength:      256
-                    width:              ScreenTools.defaultFontPixelWidth * 30
-                }
-                QGCLabel {
-                    anchors.left:   parent.left
-                    anchors.right:  parent.right
-                    wrapMode:       Text.WordWrap
-                    text:           qsTr("URL with {x} {y} {z} or {zoom} substitutions")
-                    visible:        _customURLFact ? _customURLFact.visible : false
-                    font.pointSize: _adjustableFontPointSize
-                }
-            }
-        }
+                    Item { width: 1; height: 1; visible: _esriFact ? _esriFact.visible : false }
+                    QGCLabel { text: qsTr("Esri Access Token"); visible: _esriFact ? _esriFact.visible : false }
+                    FactTextField {
+                        fact:               _esriFact
+                        visible:            _esriFact ? _esriFact.visible : false
+                        maximumLength:      256
+                        width:              ScreenTools.defaultFontPixelWidth * 30
+                    }
+                    QGCLabel {
+                        anchors.left:   parent.left
+                        anchors.right:  parent.right
+                        wrapMode:       Text.WordWrap
+                        text:           qsTr("To enable Esri maps, enter your access token.")
+                        visible:        _esriFact ? _esriFact.visible : false
+                        font.pointSize: _adjustableFontPointSize
+                    }
+                } // GridLayout
+            } // QGCFlickable
+        } // QGCViewDialog - optionsDialog
     } // Component - optionsDialogComponent
 
     Component {
         id: deleteConfirmationDialogComponent
-        QGCSimpleMessageDialog {
-            title:      qsTr("Confirm Delete")
-            text:       offlineMapView._currentSelection.defaultSet ?
-                            qsTr("This will delete all tiles INCLUDING the tile sets you have created yourself.\n\nIs this really what you want?") :
-                            qsTr("Delete %1 and all its tiles.\n\nIs this really what you want?").arg(offlineMapView._currentSelection.name)
-            buttons:    StandardButton.Yes | StandardButton.No
-
-            onAccepted: {
+        QGCViewMessage {
+            id:  deleteConfirmationDialog
+            message: {
+                if(offlineMapView._currentSelection.defaultSet)
+                    return qsTr("This will delete all tiles INCLUDING the tile sets you have created yourself.\n\nIs this really what you want?");
+                else
+                    return qsTr("Delete %1 and all its tiles.\n\nIs this really what you want?").arg(offlineMapView._currentSelection.name);
+            }
+            function accept() {
                 QGroundControl.mapEngineManager.deleteTileSet(offlineMapView._currentSelection)
+                deleteConfirmationDialog.hideDialog()
                 leaveInfoView()
                 showList()
             }
@@ -594,8 +535,7 @@ Item {
                         QGCButton {
                             text:       qsTr("Delete")
                             width:      ScreenTools.defaultFontPixelWidth * (infoView._extraButton ? 6 : 10)
-                            onClicked:  deleteConfirmationDialogComponent.createObject(mainWindow).open()
-                            enabled:    offlineMapView._currentSelection ? (offlineMapView._currentSelection.savedTileSize > 0) : false
+                            onClicked:  mainWindow.showComponentDialog(deleteConfirmationDialogComponent, qsTr("Confirm Delete"), mainWindow.showDialogDefaultWidth, StandardButton.Yes | StandardButton.No)
                         }
                         QGCButton {
                             text:       qsTr("Ok")
@@ -636,7 +576,7 @@ Item {
                     spacing:                _margins
 
                     QGCButton {
-                        text:       qsTr("Show zoom previews")
+                        text:       "Show zoom previews"
                         visible:    !_showPreview
                         onClicked:  _showPreview = !_showPreview
                     }
@@ -1075,7 +1015,7 @@ Item {
             QGCButton {
                 text:           qsTr("Options")
                 width:          _buttonSize
-                onClicked:      optionsDialogComponent.createObject(mainWindow).open()
+                onClicked:      mainWindow.showComponentDialog(optionsDialogComponent, qsTr("Offline Maps Options"), mainWindow.showDialogDefaultWidth, StandardButton.Save | StandardButton.Cancel)
             }
         }
 

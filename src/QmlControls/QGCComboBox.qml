@@ -27,7 +27,6 @@ T.ComboBox {
                              contentItem.implicitWidth + leftPadding + rightPadding + padding)
     implicitHeight: Math.max(background ? background.implicitHeight : 0,
                              Math.max(contentItem.implicitHeight, indicator ? indicator.implicitHeight : 0) + topPadding + bottomPadding)
-    baselineOffset: contentItem.y + text.baselineOffset
     leftPadding:    padding + (!control.mirrored || !indicator || !indicator.visible ? 0 : indicator.width + spacing)
     rightPadding:   padding + (control.mirrored || !indicator || !indicator.visible ? 0 : indicator.width)
 
@@ -54,7 +53,7 @@ T.ComboBox {
     }
 
     function _adjustSizeToContents() {
-        if (_onCompleted && sizeToContents && model) {
+        if (_onCompleted && sizeToContents) {
             _largestTextWidth = 0
             for (var i = 0; i < model.length; i++){
                 textMetrics.text = model[i]
@@ -126,7 +125,8 @@ T.ComboBox {
         implicitWidth:  ScreenTools.implicitComboBoxWidth
         implicitHeight: ScreenTools.implicitComboBoxHeight
         color:          _qgcPal.window
-        border.color:   _qgcPal.text
+        border.width:   enabled ? 1 : 0
+        border.color:   "#999"
     }
 
     popup: T.Popup {

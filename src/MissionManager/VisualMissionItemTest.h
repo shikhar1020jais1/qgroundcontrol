@@ -16,8 +16,6 @@
 
 #include <QGeoCoordinate>
 
-class PlanMasterController;
-
 /// Unit test for SimpleMissionItem
 class VisualMissionItemTest : public UnitTest
 {
@@ -30,7 +28,7 @@ public:
     void cleanup(void) override;
 
 protected:
-    void _createSpy(VisualMissionItem* visualItem, MultiSignalSpy** visualSpy);
+    void _createSpy(SimpleMissionItem* simpleItem, MultiSignalSpy** visualSpy);
 
     enum {
         altDifferenceChangedIndex = 0,
@@ -55,6 +53,8 @@ protected:
         lastSequenceNumberChangedIndex,
         missionGimbalYawChangedIndex,
         missionVehicleYawChangedIndex,
+        coordinateHasRelativeAltitudeChangedIndex,
+        exitCoordinateHasRelativeAltitudeChangedIndex,
         exitCoordinateSameAsEntryChangedIndex,
         maxSignalIndex,
     };
@@ -82,12 +82,13 @@ protected:
         lastSequenceNumberChangedMask =                 1 << lastSequenceNumberChangedIndex,
         missionGimbalYawChangedMask =                   1 << missionGimbalYawChangedIndex,
         missionVehicleYawChangedMask =                  1 << missionVehicleYawChangedIndex,
+        coordinateHasRelativeAltitudeChangedMask =      1 << coordinateHasRelativeAltitudeChangedIndex,
+        exitCoordinateHasRelativeAltitudeChangedMask =  1 << exitCoordinateHasRelativeAltitudeChangedIndex,
         exitCoordinateSameAsEntryChangedMask =          1 << exitCoordinateSameAsEntryChangedIndex,
     };
 
     static const size_t cVisualItemSignals = maxSignalIndex;
     const char*         rgVisualItemSignals[cVisualItemSignals];
 
-    PlanMasterController*   _masterController =     nullptr;
-    Vehicle*                _controllerVehicle =    nullptr;
+    Vehicle*        _offlineVehicle;
 };

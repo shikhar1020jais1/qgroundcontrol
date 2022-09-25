@@ -96,14 +96,14 @@ QGCMapEngineManager::updateForCurrentView(double lon0, double lat0, double lon1,
 
 //-----------------------------------------------------------------------------
 QString
-QGCMapEngineManager::tileCountStr() const
+QGCMapEngineManager::tileCountStr()
 {
     return QGCMapEngine::numberToString(_imageSet.tileCount + _elevationSet.tileCount);
 }
 
 //-----------------------------------------------------------------------------
 QString
-QGCMapEngineManager::tileSizeStr() const
+QGCMapEngineManager::tileSizeStr()
 {
     return QGCMapEngine::bigSizeToString(_imageSet.tileSize + _elevationSet.tileSize);
 }
@@ -452,7 +452,7 @@ QGCMapEngineManager::importSets(QString path) {
     if(dir.isEmpty()) {
 #if defined(__mobile__)
         //-- TODO: This has to be something fixed
-        dir = QDir(QDir::homePath()).filePath(QString("export_%1.db").arg(QDateTime::currentDateTime().toSecsSinceEpoch()));
+        dir = QDir(QDir::homePath()).filePath(QString("export_%1.db").arg(QDateTime::currentDateTime().toTime_t()));
 #else
         dir = QString(); //-- TODO: QGCQFileDialog::getOpenFileName(
         //    nullptr,
@@ -482,7 +482,7 @@ QGCMapEngineManager::exportSets(QString path) {
     QString dir = path;
     if(dir.isEmpty()) {
 #if defined(__mobile__)
-        dir = QDir(QDir::homePath()).filePath(QString("export_%1.db").arg(QDateTime::currentDateTime().toSecsSinceEpoch()));
+        dir = QDir(QDir::homePath()).filePath(QString("export_%1.db").arg(QDateTime::currentDateTime().toTime_t()));
 #else
         dir = QString(); //-- TODO: QGCQFileDialog::getSaveFileName(
         //    MainWindow::instance(),
@@ -553,7 +553,7 @@ QGCMapEngineManager::getUniqueName()
     int count = 1;
     while (true) {
         name = test;
-        name += QString::asprintf("%03d", count++);
+        name += QString().sprintf("%03d", count++);
         if(!findName(name))
             return name;
     }

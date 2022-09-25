@@ -39,14 +39,11 @@ Rectangle {
     property bool   _fullParameterVehicleAvailable: QGroundControl.multiVehicleManager.parameterReadyVehicleAvailable && !QGroundControl.multiVehicleManager.activeVehicle.parameterManager.missingParameters
     property var    _corePlugin:                    QGroundControl.corePlugin
 
-    function showSummaryPanel() {
+    function showSummaryPanel()
+    {
         if (mainWindow.preventViewSwitch()) {
             return
         }
-        _showSummaryPanel()
-    }
-
-    function _showSummaryPanel() {
         if (_fullParameterVehicleAvailable) {
             if (QGroundControl.multiVehicleManager.activeVehicle.autopilot.vehicleComponents.length === 0) {
                 panelLoader.setSourceComponent(noComponentsVehicleSummaryComponent)
@@ -58,7 +55,6 @@ Rectangle {
         } else {
             panelLoader.setSourceComponent(disconnectedVehicleSummaryComponent)
         }
-        summaryButton.checked = true
     }
 
     function showPanel(button, qmlSource) {
@@ -84,20 +80,20 @@ Rectangle {
             for(var i = 0; i < componentRepeater.count; i++) {
                 var obj = componentRepeater.itemAt(i);
                 if (obj.text === vehicleComponent.name) {
-                    obj.checked = true
+                    obj.checked = true;
                     break;
                 }
             }
         }
     }
 
-    Component.onCompleted: _showSummaryPanel()
+    Component.onCompleted: showSummaryPanel()
 
     Connections {
         target: QGroundControl.corePlugin
         onShowAdvancedUIChanged: {
             if(!QGroundControl.corePlugin.showAdvancedUI) {
-                _showSummaryPanel()
+                showSummaryPanel()
             }
         }
     }
@@ -112,7 +108,7 @@ Rectangle {
                     //      The summary panel is already showing and the active vehicle goes away
                     //      The active vehicle goes away and we are not on the Firmware panel.
                     summaryButton.checked = true
-                    _showSummaryPanel()
+                    showSummaryPanel()
                 }
             }
         }
@@ -208,6 +204,14 @@ Rectangle {
             id:         buttonColumn
             spacing:    _defaultTextHeight / 2
 
+            QGCLabel {
+                Layout.fillWidth:       true
+                text:                   qsTr("Vehicle Setup")
+                wrapMode:               Text.WordWrap
+                horizontalAlignment:    Text.AlignHCenter
+                visible:                !ScreenTools.isShortScreen
+            }
+
             Repeater {
                 model:                  _corePlugin ? _corePlugin.settingsPages : []
                 visible:                _corePlugin && _corePlugin.options.combineSettingsAndSetup
@@ -249,7 +253,7 @@ Rectangle {
             SubMenuButton {
                 id:                 px4FlowButton
                 exclusiveGroup:     setupButtonGroup
-                visible:            QGroundControl.multiVehicleManager.activeVehicle ? QGroundControl.multiVehicleManager.activeVehicle.vehicleLinkManager.primaryLinkIsPX4Flow : false
+                visible:            QGroundControl.multiVehicleManager.activeVehicle ? QGroundControl.multiVehicleManager.activeVehicle.priorityLink.isPX4Flow : false
                 setupIndicator:     false
                 text:               qsTr("PX4Flow")
                 Layout.fillWidth:   true
@@ -258,12 +262,11 @@ Rectangle {
 
             SubMenuButton {
                 id:                 joystickButton
-                imageResource:      "/qmlimages/Joystick.png"
                 setupIndicator:     true
-                setupComplete:      joystickManager.activeJoystick ? joystickManager.activeJoystick.calibrated : false
+                setupComplete:      true
                 exclusiveGroup:     setupButtonGroup
                 visible:            _fullParameterVehicleAvailable && joystickManager.joysticks.length !== 0
-                text:               qsTr("Joystick")
+                text:               qsTr("Buttons")
                 Layout.fillWidth:   true
                 onClicked:          showPanel(this, "JoystickConfig.qml")
             }
@@ -288,7 +291,7 @@ Rectangle {
                 setupIndicator:     false
                 exclusiveGroup:     setupButtonGroup
                 visible:            QGroundControl.multiVehicleManager.parameterReadyVehicleAvailable &&
-                                    !QGroundControl.multiVehicleManager.activeVehicle.usingHighLatencyLink &&
+                                    !QGroundControl.multiVehicleManager.activeVehicle.highLatencyLink &&
                                     _corePlugin.showAdvancedUI
                 text:               qsTr("Parameters")
                 Layout.fillWidth:   true

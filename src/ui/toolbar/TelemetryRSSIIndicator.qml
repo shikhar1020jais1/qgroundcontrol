@@ -56,19 +56,19 @@ Item {
                     columns:            2
                     anchors.horizontalCenter: parent.horizontalCenter
                     QGCLabel { text: qsTr("Local RSSI:") }
-                    QGCLabel { text: _activeVehicle.telemetryLRSSI + " dBm"}
+                    QGCLabel { text: activeVehicle.telemetryLRSSI + " dBm"}
                     QGCLabel { text: qsTr("Remote RSSI:") }
-                    QGCLabel { text: _activeVehicle.telemetryRRSSI + " dBm"}
+                    QGCLabel { text: activeVehicle.telemetryRRSSI + " dBm"}
                     QGCLabel { text: qsTr("RX Errors:") }
-                    QGCLabel { text: _activeVehicle.telemetryRXErrors }
+                    QGCLabel { text: activeVehicle.telemetryRXErrors }
                     QGCLabel { text: qsTr("Errors Fixed:") }
-                    QGCLabel { text: _activeVehicle.telemetryFixed }
+                    QGCLabel { text: activeVehicle.telemetryFixed }
                     QGCLabel { text: qsTr("TX Buffer:") }
-                    QGCLabel { text: _activeVehicle.telemetryTXBuffer }
+                    QGCLabel { text: activeVehicle.telemetryTXBuffer }
                     QGCLabel { text: qsTr("Local Noise:") }
-                    QGCLabel { text: _activeVehicle.telemetryLNoise }
+                    QGCLabel { text: activeVehicle.telemetryLNoise }
                     QGCLabel { text: qsTr("Remote Noise:") }
-                    QGCLabel { text: _activeVehicle.telemetryRNoise }
+                    QGCLabel { text: activeVehicle.telemetryRNoise }
                 }
             }
         }
@@ -86,7 +86,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         onClicked: {
-            mainWindow.showIndicatorPopup(_root, telemRSSIInfo)
+            mainWindow.showPopUp(_root, telemRSSIInfo)
         }
     }
 }

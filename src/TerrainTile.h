@@ -20,11 +20,26 @@ public:
     ~TerrainTile();
 
     /**
+    * Constructor from json doc with elevation data (either from file or web)
+    *
+    * @param document
+    */
+    TerrainTile(QJsonDocument document);
+
+    /**
     * Constructor from serialized elevation data (either from file or web)
     *
     * @param document
     */
     TerrainTile(QByteArray byteArray);
+
+    /**
+    * Check for whether a coordinate lies within this tile
+    *
+    * @param coordinate
+    * @return true if within
+    */
+    bool isIn(const QGeoCoordinate& coordinate) const;
 
     /**
     * Check whether valid data is loaded
@@ -69,11 +84,15 @@ public:
     */
     QGeoCoordinate centerCoordinate(void) const;
 
-    static QByteArray serializeFromAirMapJson(QByteArray input);
+    /**
+    * Serialize data
+    *
+    * @return serialized data
+    */
+    static QByteArray serialize(QByteArray input);
 
-    static constexpr double tileSizeDegrees         = 0.01;         ///< Each terrain tile represents a square area .01 degrees in lat/lon
-    static constexpr double tileValueSpacingDegrees = 1.0 / 3600;   ///< 1 Arc-Second spacing of elevation values
-    static constexpr double tileValueSpacingMeters  = 30.0;
+    /// Approximate spacing of the elevation data measurement points
+    static constexpr double terrainAltitudeSpacing = 30.0;
 
 private:
     typedef struct {
@@ -84,6 +103,9 @@ private:
         int16_t gridSizeLat;
         int16_t gridSizeLon;
     } TileInfo_t;
+
+    inline int _latToDataIndex(double latitude) const;
+    inline int _lonToDataIndex(double longitude) const;
 
     QGeoCoordinate      _southWest;                                     /// South west corner of the tile
     QGeoCoordinate      _northEast;                                     /// North east corner of the tile

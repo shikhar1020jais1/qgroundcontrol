@@ -10,9 +10,8 @@
 #pragma once
 
 #include "UnitTest.h"
-#include "MultiSignalSpyV2.h"
+#include "MultiSignalSpy.h"
 #include "CameraCalc.h"
-#include "PlanMasterController.h"
 
 #include <QGeoCoordinate>
 
@@ -33,8 +32,25 @@ private slots:
     void _testAltDensityRecalc  (void);
 
 private:
-    PlanMasterController*   _masterController   = nullptr;
-    Vehicle*                _controllerVehicle  = nullptr;
-    MultiSignalSpyV2*       _multiSpy           = nullptr;
-    CameraCalc*             _cameraCalc         = nullptr;
+    enum {
+        dirtyChangedIndex = 0,
+        imageFootprintSideChangedIndex,
+        imageFootprintFrontalChangedIndex,
+        distanceToSurfaceRelativeChangedIndex,
+        maxSignalIndex
+    };
+
+    enum {
+        dirtyChangedMask =                      1 << dirtyChangedIndex,
+        imageFootprintSideChangedMask =         1 << imageFootprintSideChangedIndex,
+        imageFootprintFrontalChangedMask =      1 << imageFootprintFrontalChangedIndex,
+        distanceToSurfaceRelativeChangedMask =  1 << distanceToSurfaceRelativeChangedIndex,
+    };
+
+    static const size_t _cSignals = maxSignalIndex;
+    const char*         _rgSignals[_cSignals];
+
+    Vehicle*        _offlineVehicle;
+    MultiSignalSpy* _multiSpy;
+    CameraCalc*     _cameraCalc;
 };

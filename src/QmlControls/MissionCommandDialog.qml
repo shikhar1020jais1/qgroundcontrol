@@ -8,97 +8,101 @@
  ****************************************************************************/
 
 
-import QtQuick          2.3
-import QtQuick.Controls 1.2
-import QtQuick.Layouts  1.2
-import QtQuick.Dialogs  1.2
+import QtQuick                  2.3
+import QtQuick.Controls         1.2
 
 import QGroundControl               1.0
 import QGroundControl.Controls      1.0
 import QGroundControl.ScreenTools   1.0
 import QGroundControl.Palette       1.0
 
-QGCPopupDialog {
-    id:         root
-    title:      qsTr("Select Mission Command")
-    buttons:    StandardButton.Cancel
+QGCViewDialog {
+    id: root
 
-    property var    vehicle
     property var    missionItem
     property var    map
     property bool   flyThroughCommandsAllowed
 
-    ColumnLayout {
-        RowLayout {
-            spacing: ScreenTools.defaultFontPixelWidth
+    property var _vehicle: QGroundControl.multiVehicleManager.activeVehicle
 
-            QGCLabel {
-                text: qsTr("Category:")
-            }
+    QGCPalette { id: qgcPal }
 
-            QGCComboBox {
-                id:                     categoryCombo
-                Layout.preferredWidth:  30 * ScreenTools.defaultFontPixelWidth
-                model:                  QGroundControl.missionCommandTree.categoriesForVehicle(vehicle)
+    QGCLabel {
+        id:                 categoryLabel
+        anchors.baseline:   categoryCombo.baseline
+        text:               qsTr("Category:")
+    }
 
-                function categorySelected(category) {
-                    commandList.model = QGroundControl.missionCommandTree.getCommandsForCategory(vehicle, category, flyThroughCommandsAllowed)
-                }
+    QGCComboBox {
+        id:                 categoryCombo
+        anchors.margins:    ScreenTools.defaultFontPixelWidth
+        anchors.left:       categoryLabel.right
+        anchors.right:      parent.right
+        model:              QGroundControl.missionCommandTree.categoriesForVehicle(_vehicle)
 
-                Component.onCompleted: {
-                    var category  = missionItem.category
-                    currentIndex = find(category)
-                    categorySelected(category)
-                }
-
-                onActivated: categorySelected(textAt(index))
-            }
+        function categorySelected(category) {
+            commandList.model = QGroundControl.missionCommandTree.getCommandsForCategory(_vehicle, category, flyThroughCommandsAllowed)
         }
 
-        Repeater {
-            id:                 commandList
-            Layout.fillWidth:   true
+        Component.onCompleted: {
+            var category  = missionItem.category
+            currentIndex = find(category)
+            categorySelected(category)
+        }
 
-            delegate: Rectangle {
-                width:  parent.width
-                height: commandColumn.height + ScreenTools.defaultFontPixelHeight
-                color:  QGroundControl.globalPalette.button
+        onActivated: categorySelected(textAt(index))
+    }
 
-                property var    mavCmdInfo: modelData
-                property color  textColor:  QGroundControl.globalPalette.buttonText
+    QGCListView {
+        id:                 commandList
+        anchors.margins:    ScreenTools.defaultFontPixelHeight
+        anchors.left:       parent.left
+        anchors.right:      parent.right
+        anchors.top:        categoryCombo.bottom
+        anchors.bottom:     parent.bottom
+        spacing:            ScreenTools.defaultFontPixelHeight / 2
+        orientation:        ListView.Vertical
+        clip:               true
 
-                Column {
-                    id:                 commandColumn
+        delegate: Rectangle {
+            width:  parent.width
+            height: commandColumn.height + ScreenTools.defaultFontPixelHeight
+            color:  qgcPal.button
+
+            property var    mavCmdInfo: modelData
+            property color  textColor:  qgcPal.buttonText
+
+            Column {
+                id:                 commandColumn
+                anchors.margins:    ScreenTools.defaultFontPixelWidth
+                anchors.left:       parent.left
+                anchors.right:      parent.right
+                anchors.top:        parent.top
+
+                QGCLabel {
+                    text:           mavCmdInfo.friendlyName
+                    color:          textColor
+                    font.family:    ScreenTools.demiboldFontFamily
+                }
+
+                QGCLabel {
                     anchors.margins:    ScreenTools.defaultFontPixelWidth
                     anchors.left:       parent.left
                     anchors.right:      parent.right
-                    anchors.top:        parent.top
-
-                    QGCLabel {
-                        text:           mavCmdInfo.friendlyName
-                        color:          textColor
-                        font.family:    ScreenTools.demiboldFontFamily
-                    }
-
-                    QGCLabel {
-                        anchors.margins:    ScreenTools.defaultFontPixelWidth
-                        anchors.left:       parent.left
-                        anchors.right:      parent.right
-                        text:               mavCmdInfo.description
-                        wrapMode:           Text.WordWrap
-                        color:              textColor
-                    }
+                    text:               mavCmdInfo.description
+                    wrapMode:           Text.WordWrap
+                    color:              textColor
                 }
+            }
 
-                MouseArea {
-                    anchors.fill:   parent
-                    onClicked: {
-                        missionItem.setMapCenterHintForCommandChange(map.center)
-                        missionItem.command = mavCmdInfo.command
-                        root.close()
-                    }
+            MouseArea {
+                anchors.fill:   parent
+                onClicked: {
+                    missionItem.setMapCenterHintForCommandChange(map.center)
+                    missionItem.command = mavCmdInfo.command
+                    root.reject()
                 }
             }
         }
-    }
-}
+    } // QGCListView
+} // QGCViewDialog

@@ -86,7 +86,6 @@ QList<QSerialPortInfo> availablePortsByFiltersOfDevices(bool &ok)
         //__android_log_print(ANDROID_LOG_INFO, V_TAG, "Adding device: %s", rawStringL);
         QStringList strListL = QString::fromUtf8(rawStringL).split(QStringLiteral(":"));
         envL->ReleaseStringUTFChars(stringL, rawStringL);
-        envL->DeleteLocalRef(stringL);
 
         priv.portName               = strListL[0];
         priv.device                 = strListL[0];

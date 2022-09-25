@@ -9,11 +9,8 @@
 
 
 #include "QGC.h"
-
 #include <qmath.h>
 #include <float.h>
-
-#include <QtGlobal>
 
 namespace QGC
 {
@@ -138,19 +135,6 @@ quint32 crc32(const quint8 *src, unsigned len, unsigned state)
         state = crctab[(state ^ src[i]) & 0xff] ^ (state >> 8);
     }
     return state;
-}
-
-bool fuzzyCompare(double value1, double value2)
-{
-    if (qIsNaN(value1) && qIsNaN(value2)) {
-        return true;
-    } else if (qIsNaN(value1) || qIsNaN(value2)) {
-        return false;
-    } else if (value1 == value2) {
-        return true;
-    } else {
-        return qFuzzyCompare(value1, value2);
-    }
 }
 
 }

@@ -21,6 +21,7 @@ import QGroundControl.ScreenTools   1.0
 AnalyzePage {
     id:                 logDownloadPage
     pageComponent:      pageComponent
+    pageName:           qsTr("Log Download")
     pageDescription:    qsTr("Log Download allows you to download binary log files from your vehicle. Click Refresh to get list of available logs.")
 
     property real _margin:          ScreenTools.defaultFontPixelWidth
@@ -169,10 +170,21 @@ AnalyzePage {
                     enabled:    !logController.requestingList && !logController.downloadingLogs && logController.model.count > 0
                     text:       qsTr("Erase All")
                     width:      _butttonWidth
-                    onClicked:  mainWindow.showMessageDialog(qsTr("Delete All Log Files"),
-                                                             qsTr("All log files will be erased permanently. Is this really what you want?"),
-                                                             StandardButton.Yes | StandardButton.No,
-                                                             function() { logController.eraseAll() })
+                    onClicked:  mainWindow.showComponentDialog(
+                        eraseAllMessage,
+                        qsTr("Delete All Log Files"),
+                        mainWindow.showDialogDefaultWidth,
+                        StandardButton.Yes | StandardButton.No)
+                    Component {
+                        id: eraseAllMessage
+                        QGCViewMessage {
+                            message:    qsTr("All log files will be erased permanently. Is this really what you want?")
+                            function accept() {
+                                logController.eraseAll()
+                                hideDialog()
+                            }
+                        }
+                    }
                 }
                 QGCButton {
                     text:       qsTr("Cancel")

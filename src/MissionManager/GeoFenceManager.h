@@ -7,7 +7,8 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef GeoFenceManager_H
+#define GeoFenceManager_H
 
 #include <QObject>
 #include <QGeoCoordinate>
@@ -21,16 +22,16 @@
 #include "PlanManager.h"
 #include "QGCFencePolygon.h"
 #include "QGCFenceCircle.h"
-#include "PlanManager.h"
 
 class Vehicle;
 class QmlObjectListModel;
+class PlanManager;
 
 Q_DECLARE_LOGGING_CATEGORY(GeoFenceManagerLog)
 
 /// This is the base class for firmware specific geofence managers. A geofence manager is responsible
 /// for communicating with the vehicle to set/get geofence settings.
-class GeoFenceManager : public PlanManager
+class GeoFenceManager : public QObject
 {
     Q_OBJECT
     
@@ -38,19 +39,29 @@ public:
     GeoFenceManager(Vehicle* vehicle);
     ~GeoFenceManager();
     
-    bool supported(void) const;
+    /// Returns true if GeoFence is supported by this vehicle
+    virtual bool supported(void) const;
 
-    /// Signals sendComplete when done
-    void sendToVehicle(const QGeoCoordinate&    breachReturn,   ///< Breach return point
-                       QmlObjectListModel&      polygons,       ///< List of QGCFencePolygons
-                       QmlObjectListModel&      circles);       ///< List of QGCFenceCircles
+    /// Returns true if the manager is currently communicating with the vehicle
+    virtual bool inProgress(void) const;
 
-    /// Signals removeAllComplete when done
-    void removeAll(void);
+    /// Load the current settings from the vehicle
+    ///     Signals loadComplete when done
+    virtual void loadFromVehicle(void);
+
+    /// Send the geofence settings to the vehicle
+    ///     Signals sendComplete when done
+    virtual void sendToVehicle(const QGeoCoordinate&    breachReturn,   ///< Breach return point
+                               QmlObjectListModel&      polygons,       ///< List of QGCFencePolygons
+                               QmlObjectListModel&      circles);       ///< List of QGCFenceCircles
+
+    /// Remove all fence related items from vehicle (does not affect parameters)
+    ///     Signals removeAllComplete when done
+    virtual void removeAll(void);
 
     /// Returns true if polygon fence is currently enabled on this vehicle
     ///     Signal: polygonEnabledChanged
-    bool polygonEnabled(void) const { return true; }
+    virtual bool polygonEnabled(void) const { return true; }
 
     const QList<QGCFencePolygon>&   polygons(void) { return _polygons; }
     const QList<QGCFenceCircle>&    circles(void) { return _circles; }
@@ -68,11 +79,11 @@ public:
     } ErrorCode_t;
     
 signals:
-    void loadComplete       (void);
-    void inProgressChanged  (bool inProgress);
-    void error              (int errorCode, const QString& errorMsg);
-    void removeAllComplete  (bool error);
-    void sendComplete       (bool error);
+    void loadComplete                   (void);
+    void inProgressChanged              (bool inProgress);
+    void error                          (int errorCode, const QString& errorMsg);
+    void removeAllComplete              (bool error);
+    void sendComplete                   (bool error);
 
 private slots:
     void _sendComplete              (bool error);
@@ -81,13 +92,17 @@ private slots:
 private:
     void _sendError(ErrorCode_t errorCode, const QString& errorMsg);
 
+    Vehicle*                _vehicle;
+    PlanManager             _planManager;
     QList<QGCFencePolygon>  _polygons;
     QList<QGCFenceCircle>   _circles;
     QGeoCoordinate          _breachReturnPoint;
-    bool                    _firstParamLoadComplete = false;
+    bool                    _firstParamLoadComplete;
     QList<QGCFencePolygon>  _sendPolygons;
     QList<QGCFenceCircle>   _sendCircles;
 #if defined(QGC_AIRMAP_ENABLED)
-    AirspaceManager*        _airspaceManager        = nullptr;
+    AirspaceManager*         _airspaceManager;
 #endif
 };
+
+#endif

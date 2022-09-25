@@ -20,9 +20,6 @@ public:
 
     ~BingMapProvider() = default;
 
-    bool _isBingProvider() const override { return true; }
-
-
 protected:
     const QString _versionBingMaps = QStringLiteral("563");
 };

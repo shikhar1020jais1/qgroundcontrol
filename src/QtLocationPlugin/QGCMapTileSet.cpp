@@ -67,49 +67,49 @@ QGCCachedTileSet::~QGCCachedTileSet()
 
 //-----------------------------------------------------------------------------
 QString
-QGCCachedTileSet::errorCountStr() const
+QGCCachedTileSet::errorCountStr()
 {
     return QGCMapEngine::numberToString(_errorCount);
 }
 
 //-----------------------------------------------------------------------------
 QString
-QGCCachedTileSet::totalTileCountStr() const
+QGCCachedTileSet::totalTileCountStr()
 {
     return QGCMapEngine::numberToString(_totalTileCount);
 }
 
 //-----------------------------------------------------------------------------
 QString
-QGCCachedTileSet::totalTilesSizeStr() const
+QGCCachedTileSet::totalTilesSizeStr()
 {
     return QGCMapEngine::bigSizeToString(_totalTileSize);
 }
 
 //-----------------------------------------------------------------------------
 QString
-QGCCachedTileSet::uniqueTileSizeStr() const
+QGCCachedTileSet::uniqueTileSizeStr()
 {
     return QGCMapEngine::bigSizeToString(_uniqueTileSize);
 }
 
 //-----------------------------------------------------------------------------
 QString
-QGCCachedTileSet::uniqueTileCountStr() const
+QGCCachedTileSet::uniqueTileCountStr()
 {
     return QGCMapEngine::numberToString(_uniqueTileCount);
 }
 
 //-----------------------------------------------------------------------------
 QString
-QGCCachedTileSet::savedTileCountStr() const
+QGCCachedTileSet::savedTileCountStr()
 {
     return QGCMapEngine::numberToString(_savedTileCount);
 }
 
 //-----------------------------------------------------------------------------
 QString
-QGCCachedTileSet::savedTileSizeStr() const
+QGCCachedTileSet::savedTileSizeStr()
 {
     return QGCMapEngine::bigSizeToString(_savedTileSize);
 }
@@ -250,7 +250,7 @@ void QGCCachedTileSet::_prepareDownload()
             QNetworkReply* reply = _networkManager->get(request);
             reply->setParent(0);
             connect(reply, &QNetworkReply::finished, this, &QGCCachedTileSet::_networkReplyFinished);
-            connect(reply, &QNetworkReply::errorOccurred, this, &QGCCachedTileSet::_networkReplyError);
+            connect(reply, static_cast<void (QNetworkReply::*)(QNetworkReply::NetworkError)>(&QNetworkReply::error), this, &QGCCachedTileSet::_networkReplyError);
             _replies.insert(tile->hash(), reply);
 #if !defined(__mobile__)
             _networkManager->setProxy(proxy);
@@ -288,7 +288,7 @@ QGCCachedTileSet::_networkReplyFinished()
             QByteArray image = reply->readAll();
             QString type = getQGCMapEngine()->hashToType(hash);
             if (type == "Airmap Elevation" ) {
-                image = TerrainTile::serializeFromAirMapJson(image);
+                image = TerrainTile::serialize(image);
             }
             QString format = getQGCMapEngine()->urlFactory()->getImageFormat(type, image);
             if(!format.isEmpty()) {

@@ -33,17 +33,15 @@ QGCTextField {
             _textField.updated()
         } else {
             _validateString = text
-            validationErrorDialogComponent.createObject(mainWindow).open()
+            mainWindow.showComponentDialog(validationErrorDialogComponent, qsTr("Invalid Value"), mainWindow.showDialogDefaultWidth, StandardButton.Save | StandardButton.Cancel)
         }
     }
 
-    onHelpClicked: helpDialogComponent.createObject(mainWindow).open()
+    onHelpClicked: mainWindow.showComponentDialog(helpDialogComponent, qsTr("Value Details"), mainWindow.showDialogDefaultWidth, StandardButton.Save | StandardButton.Cancel)
 
     Component {
         id: validationErrorDialogComponent
-
         ParameterEditorDialog {
-            title:          qsTr("Invalid Value")
             validate:       true
             validateValue:  _validateString
             fact:           _textField.fact
@@ -52,10 +50,8 @@ QGCTextField {
 
     Component {
         id: helpDialogComponent
-
         ParameterEditorDialog {
-            title:          qsTr("Value Details")
-            fact:           _textField.fact
+            fact: _textField.fact
         }
     }
 }

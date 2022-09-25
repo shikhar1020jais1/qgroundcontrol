@@ -52,25 +52,19 @@ Rectangle {
         visible:            !editorColumnNeedLandingPoint.visible
 
         SectionHeader {
-            id:             finalApproachSection
+            id:             loiterPointSection
             anchors.left:   parent.left
             anchors.right:  parent.right
-            text:           qsTr("Final approach")
+            text:           qsTr("Loiter point")
         }
 
         Column {
             anchors.left:       parent.left
             anchors.right:      parent.right
             spacing:            _margin
-            visible:            finalApproachSection.checked
+            visible:            loiterPointSection.checked
 
             Item { width: 1; height: _spacer }
-
-            FactCheckBox {
-                text:       qsTr("Use loiter to altitude")
-                fact:       missionItem.useLoiterToAlt
-                visible:    missionItem.useLoiterToAlt.visible
-            }
 
             GridLayout {
                 anchors.left:    parent.left
@@ -81,34 +75,30 @@ Rectangle {
 
                 AltitudeFactTextField {
                     Layout.fillWidth:   true
-                    fact:               missionItem.finalApproachAltitude
+                    fact:               missionItem.loiterAltitude
                     altitudeMode:       _altitudeMode
                 }
 
-                QGCLabel {
-                    text:       qsTr("Radius")
-                    visible:    missionItem.useLoiterToAlt.rawValue
-                }
+                QGCLabel { text: qsTr("Radius") }
 
                 FactTextField {
                     Layout.fillWidth:   true
                     fact:               missionItem.loiterRadius
-                    visible:            missionItem.useLoiterToAlt.rawValue
                 }
             }
 
             Item { width: 1; height: _spacer }
 
-            FactCheckBox {
-                text:       qsTr("Loiter clockwise")
-                fact:       missionItem.loiterClockwise
-                visible:    missionItem.useLoiterToAlt.rawValue
+            QGCCheckBox {
+                text:           qsTr("Loiter clockwise")
+                checked:        missionItem.loiterClockwise
+                onClicked:      missionItem.loiterClockwise = checked
             }
 
             QGCButton {
                 text:       _setToVehicleHeadingStr
-                visible:    globals.activeVehicle
-                onClicked:  missionItem.landingHeading.rawValue = globals.activeVehicle.heading.rawValue
+                visible:    activeVehicle
+                onClicked:  missionItem.landingHeading.rawValue = activeVehicle.heading.rawValue
             }
         }
 
@@ -149,7 +139,7 @@ Rectangle {
 
                 QGCRadioButton {
                     id:                 specifyLandingDistance
-                    text:               qsTr("Distance")
+                    text:               qsTr("Landing Dist")
                     checked:            missionItem.valueSetIsDistance.rawValue
                     onClicked:          missionItem.valueSetIsDistance.rawValue = checked
                     Layout.fillWidth:   true
@@ -177,9 +167,9 @@ Rectangle {
 
                 QGCButton {
                     text:               _setToVehicleLocationStr
-                    visible:            globals.activeVehicle
+                    visible:            activeVehicle
                     Layout.columnSpan:  2
-                    onClicked:          missionItem.landingCoordinate = globals.activeVehicle.coordinate
+                    onClicked:          missionItem.landingCoordinate = activeVehicle.coordinate
                 }
             }
         }
@@ -288,18 +278,17 @@ Rectangle {
                 anchors.right:          parent.right
                 horizontalAlignment:    Text.AlignHCenter
                 text:                   qsTr("- or -")
-                visible:                globals.activeVehicle
+                visible:                activeVehicle
             }
 
             QGCButton {
                 anchors.horizontalCenter:   parent.horizontalCenter
                 text:                       _setToVehicleLocationStr
-                visible:                    globals.activeVehicle
+                visible:                    activeVehicle
 
                 onClicked: {
-                    missionItem.landingCoordinate = globals.activeVehicle.coordinate
-                    missionItem.landingHeading.rawValue = globals.activeVehicle.heading.rawValue
-                    missionItem.setLandingHeadingToTakeoffHeading()
+                    missionItem.landingCoordinate = activeVehicle.coordinate
+                    missionItem.landingHeading.rawValue = activeVehicle.heading.rawValue
                 }
             }
         }
@@ -323,11 +312,12 @@ Rectangle {
             }
 
             QGCButton {
-                text:               qsTr("Done")
+                text:               qsTr("Done Adjusting")
                 Layout.fillWidth:   true
                 onClicked: {
                     missionItem.wizardMode = false
                     missionItem.landingDragAngleOnly = false
+                    editorRoot.selectNextNotReadyItem()
                 }
             }
         }

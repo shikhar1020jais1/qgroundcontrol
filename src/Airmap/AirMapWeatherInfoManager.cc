@@ -10,8 +10,9 @@
 #include "AirMapWeatherInfoManager.h"
 #include "AirMapManager.h"
 
-#define WEATHER_UPDATE_DISTANCE     50000           //-- 50km threshold for weather updates
-#define WEATHER_UPDATE_TIME_MSECS   30 * 60 * 1000  //-- 30 minutes threshold for weather updates
+
+#define WEATHER_UPDATE_DISTANCE 50000                   //-- 50km threshold for weather updates
+#define WEATHER_UPDATE_TIME     30 * 60 * 60 * 1000     //-- 30 minutes threshold for weather updates
 
 using namespace airmap;
 
@@ -29,12 +30,12 @@ AirMapWeatherInfoManager::setROI(const QGCGeoBoundingCube& roi, bool reset)
     if(reset || (!_lastRoiCenter.isValid() || _lastRoiCenter.distanceTo(roi.center()) > WEATHER_UPDATE_DISTANCE)) {
         _lastRoiCenter = roi.center();
         _requestWeatherUpdate(_lastRoiCenter);
-        _weatherTimeElapsed.start();
+        _weatherTime.start();
     } else {
         //-- Check weather once every WEATHER_UPDATE_TIME
-        if(_weatherTimeElapsed.elapsed() > WEATHER_UPDATE_TIME_MSECS) {
+        if(_weatherTime.elapsed() > WEATHER_UPDATE_TIME) {
             _requestWeatherUpdate(roi.center());
-            _weatherTimeElapsed.start();
+            _weatherTime.start();
         }
     }
 }

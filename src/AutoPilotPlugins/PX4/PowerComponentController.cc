@@ -7,6 +7,10 @@
  *
  ****************************************************************************/
 
+
+/// @file
+///     @author Don Gagne <don@thegagnes.com>
+
 #include "PowerComponentController.h"
 #include "QGCMAVLink.h"
 #include "UAS.h"
@@ -22,26 +26,26 @@ PowerComponentController::PowerComponentController(void)
 void PowerComponentController::calibrateEsc(void)
 {
     _warningMessages.clear();
-    connect(_vehicle, &Vehicle::textMessageReceived, this, &PowerComponentController::_handleVehicleTextMessage);
-    _vehicle->startCalibration(Vehicle::CalibrationEsc);
+    connect(_vehicle, &Vehicle::textMessageReceived, this, &PowerComponentController::_handleUASTextMessage);
+    _uas->startCalibration(UASInterface::StartCalibrationEsc);
 }
 
-void PowerComponentController::startBusConfigureActuators(void)
+void PowerComponentController::busConfigureActuators(void)
 {
     _warningMessages.clear();
-    connect(_vehicle, &Vehicle::textMessageReceived, this, &PowerComponentController::_handleVehicleTextMessage);
-    _vehicle->startUAVCANBusConfig();
+    connect(_vehicle, &Vehicle::textMessageReceived, this, &PowerComponentController::_handleUASTextMessage);
+    _uas->startBusConfig(UASInterface::StartBusConfigActuators);
 }
 
 void PowerComponentController::stopBusConfigureActuators(void)
 {
-    disconnect(_vehicle, &Vehicle::textMessageReceived, this, &PowerComponentController::_handleVehicleTextMessage);
-    _vehicle->stopUAVCANBusConfig();
+    disconnect(_vehicle, &Vehicle::textMessageReceived, this, &PowerComponentController::_handleUASTextMessage);
+    _uas->startBusConfig(UASInterface::EndBusConfigActuators);
 }
 
 void PowerComponentController::_stopCalibration(void)
 {
-    disconnect(_vehicle, &Vehicle::textMessageReceived, this, &PowerComponentController::_handleVehicleTextMessage);
+    disconnect(_vehicle, &Vehicle::textMessageReceived, this, &PowerComponentController::_handleUASTextMessage);
 }
 
 void PowerComponentController::_stopBusConfig(void)
@@ -49,9 +53,12 @@ void PowerComponentController::_stopBusConfig(void)
     _stopCalibration();
 }
 
-void PowerComponentController::_handleVehicleTextMessage(int vehicleId, int /* compId */, int /* severity */, QString text)
+void PowerComponentController::_handleUASTextMessage(int uasId, int compId, int severity, QString text)
 {
-    if (vehicleId != _vehicle->id()) {
+    Q_UNUSED(compId);
+    Q_UNUSED(severity);
+    
+    if (uasId != _vehicle->id()) {
         return;
     }
     

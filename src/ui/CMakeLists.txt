@@ -2,10 +2,15 @@ add_subdirectory(preferences)
 add_subdirectory(toolbar)
 
 add_library(ui
+
+	MAVLinkDecoder.cc
+	MAVLinkDecoder.h
+	QGCMapRCToParamDialog.h
 	QGCPluginHost.cc
 	QGCPluginHost.h
 
 	# UI
+	QGCMapRCToParamDialog.ui
 	QGCPluginHost.ui
 	QMap3D.ui
 )
@@ -29,4 +34,3 @@ target_include_directories(ui
 	PRIVATE
 		linechart
 )
-

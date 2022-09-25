@@ -17,19 +17,18 @@
 class QGCMapPolylineTest : public UnitTest
 {
     Q_OBJECT
-
+    
 public:
     QGCMapPolylineTest(void);
 
 protected:
     void init(void) final;
     void cleanup(void) final;
-
+    
 private slots:
     void _testDirty(void);
     void _testVertexManipulation(void);
 //    void _testKMLLoad(void);
-    void _testSelectVertex(void);
 
 private:
     enum {

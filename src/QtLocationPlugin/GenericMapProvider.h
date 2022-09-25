@@ -10,77 +10,6 @@
 
 #include "MapProvider.h"
 
-class JapanStdMapProvider : public MapProvider {
-    Q_OBJECT
-  public:
-    JapanStdMapProvider(QObject* parent = nullptr)
-        : MapProvider(QStringLiteral("https://cyberjapandata.gsi.go.jp/xyz/std"), QStringLiteral("png"),
-                      AVERAGE_TILE_SIZE, QGeoMapType::StreetMap, parent) {}
-
-    QString _getURL(const int x, const int y, const int zoom, QNetworkAccessManager* networkManager) override;
-};
-
-class JapanSeamlessMapProvider : public MapProvider {
-    Q_OBJECT
-  public:
-    JapanSeamlessMapProvider(QObject* parent = nullptr)
-        : MapProvider(QStringLiteral("https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto"), QStringLiteral("jpg"),
-                      AVERAGE_TILE_SIZE, QGeoMapType::StreetMap, parent) {}
-
-    QString _getURL(const int x, const int y, const int zoom, QNetworkAccessManager* networkManager) override;
-};
-
-class JapanAnaglyphMapProvider : public MapProvider {
-    Q_OBJECT
-  public:
-    JapanAnaglyphMapProvider(QObject* parent = nullptr)
-        : MapProvider(QStringLiteral("https://cyberjapandata.gsi.go.jp/xyz/anaglyphmap_color"), QStringLiteral("png"),
-                      AVERAGE_TILE_SIZE, QGeoMapType::StreetMap, parent) {}
-
-    QString _getURL(const int x, const int y, const int zoom, QNetworkAccessManager* networkManager) override;
-};
-
-class JapanSlopeMapProvider : public MapProvider {
-    Q_OBJECT
-  public:
-    JapanSlopeMapProvider(QObject* parent = nullptr)
-        : MapProvider(QStringLiteral("https://cyberjapandata.gsi.go.jp/xyz/slopemap"), QStringLiteral("png"),
-                      AVERAGE_TILE_SIZE, QGeoMapType::StreetMap, parent) {}
-
-    QString _getURL(const int x, const int y, const int zoom, QNetworkAccessManager* networkManager) override;
-};
-
-class JapanReliefMapProvider : public MapProvider {
-    Q_OBJECT
-  public:
-    JapanReliefMapProvider(QObject* parent = nullptr)
-        : MapProvider(QStringLiteral("https://cyberjapandata.gsi.go.jp/xyz/relief"), QStringLiteral("png"),
-                      AVERAGE_TILE_SIZE, QGeoMapType::StreetMap, parent) {}
-
-    QString _getURL(const int x, const int y, const int zoom, QNetworkAccessManager* networkManager) override;
-};
-
-class LINZBasemapMapProvider : public MapProvider {
-    Q_OBJECT
-  public:
-    LINZBasemapMapProvider(QObject* parent = nullptr)
-        : MapProvider(QStringLiteral("https://basemaps.linz.govt.nz/v1/tiles/aerial"), QStringLiteral("png"),
-                      AVERAGE_TILE_SIZE, QGeoMapType::SatelliteMapDay, parent) {}
-
-    QString _getURL(const int x, const int y, const int zoom, QNetworkAccessManager* networkManager) override;
-};
-
-class CustomURLMapProvider : public MapProvider {
-    Q_OBJECT
-  public:
-    CustomURLMapProvider(QObject* parent = nullptr)
-        : MapProvider(QStringLiteral(""), QStringLiteral(""),
-                      AVERAGE_TILE_SIZE, QGeoMapType::CustomMap, parent) {}
-
-    QString _getURL(const int x, const int y, const int zoom, QNetworkAccessManager* networkManager) override;
-};
-
-
 class StatkartMapProvider : public MapProvider {
     Q_OBJECT
   public:
@@ -138,7 +67,7 @@ class VWorldSatMapProvider : public MapProvider {
     Q_OBJECT
   public:
     VWorldSatMapProvider(QObject* parent = nullptr)
-        : MapProvider(QStringLiteral("www.vworld.kr"), QStringLiteral("jpeg"),
+        : MapProvider(QStringLiteral("www.vworld.kr"), QStringLiteral("jpg"),
                       AVERAGE_TILE_SIZE, QGeoMapType::SatelliteMapDay, parent) {}
 
     QString _getURL(const int x, const int y, const int zoom, QNetworkAccessManager* networkManager) override;

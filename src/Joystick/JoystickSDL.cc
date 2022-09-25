@@ -14,7 +14,7 @@ JoystickSDL::JoystickSDL(const QString& name, int axisCount, int buttonCount, in
 }
 
 bool JoystickSDL::init(void) {
-    if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK) < 0) {
+    if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_NOPARACHUTE) < 0) {
         SDL_JoystickEventState(SDL_ENABLE);
         qWarning() << "Couldn't initialize SimpleDirectMediaLayer:" << SDL_GetError();
         return false;
@@ -37,20 +37,29 @@ QMap<QString, Joystick*> JoystickSDL::discover(MultiVehicleManager* _multiVehicl
 
         if (!ret.contains(name)) {
             int axisCount, buttonCount, hatCount;
-            bool isGameController = SDL_IsGameController(i);
+            bool isGameController;
 
-            if (SDL_Joystick* sdlJoystick = SDL_JoystickOpen(i)) {
-                SDL_ClearError();
-                axisCount = SDL_JoystickNumAxes(sdlJoystick);
-                buttonCount = SDL_JoystickNumButtons(sdlJoystick);
-                hatCount = SDL_JoystickNumHats(sdlJoystick);
-                if (axisCount < 0 || buttonCount < 0 || hatCount < 0) {
-                    qCWarning(JoystickLog) << "\t libsdl error parsing joystick features:" << SDL_GetError();
-                }
-                SDL_JoystickClose(sdlJoystick);
+
+            if (SDL_IsGameController(i)) {
+                isGameController = true;
+                axisCount = SDL_CONTROLLER_AXIS_MAX;
+                buttonCount = SDL_CONTROLLER_BUTTON_MAX;
+                hatCount = 0;
             } else {
-                qCWarning(JoystickLog) << "\t libsdl failed opening joystick" << qPrintable(name) << "error:" << SDL_GetError();
-                continue;
+                isGameController = false;
+                if (SDL_Joystick* sdlJoystick = SDL_JoystickOpen(i)) {
+                    SDL_ClearError();
+                    axisCount = SDL_JoystickNumAxes(sdlJoystick);
+                    buttonCount = SDL_JoystickNumButtons(sdlJoystick);
+                    hatCount = SDL_JoystickNumHats(sdlJoystick);
+                    if (axisCount < 0 || buttonCount < 0 || hatCount < 0) {
+                        qCWarning(JoystickLog) << "\t libsdl error parsing joystick features:" << SDL_GetError();
+                    }
+                    SDL_JoystickClose(sdlJoystick);
+                } else {
+                    qCWarning(JoystickLog) << "\t libsdl failed opening joystick" << qPrintable(name) << "error:" << SDL_GetError();
+                    continue;
+                }
             }
 
             qCDebug(JoystickLog) << "\t" << name << "axes:" << axisCount << "buttons:" << buttonCount << "hats:" << hatCount << "isGC:" << isGameController;

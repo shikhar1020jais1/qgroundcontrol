@@ -23,12 +23,11 @@ class CustomFirmwarePlugin : public PX4FirmwarePlugin
     Q_OBJECT
 public:
     CustomFirmwarePlugin();
-
     // FirmwarePlugin overrides
-    AutoPilotPlugin*    autopilotPlugin (Vehicle* vehicle) final;
-    const QVariantList& toolIndicators  (const Vehicle* vehicle) final;
-    bool                hasGimbal       (Vehicle* vehicle, bool& rollSupported, bool& pitchSupported, bool& yawSupported) final;
-
+    AutoPilotPlugin*    autopilotPlugin                     (Vehicle* vehicle) override;
+    QGCCameraManager*   createCameraManager                 (Vehicle *vehicle) override;
+    QGCCameraControl*   createCameraControl                 (const mavlink_camera_information_t* info, Vehicle* vehicle, int compID, QObject* parent = nullptr) override;
+    const QVariantList& toolBarIndicators                   (const Vehicle* vehicle) override;
 private:
-    QVariantList _toolIndicatorList;
+    QVariantList _toolBarIndicatorList;
 };

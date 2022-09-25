@@ -17,12 +17,17 @@ import QGroundControl.Palette       1.0
 
 Item {
     id:         _root
+    z:          QGroundControl.zOrderWidgets
     visible:    false
 
     signal          clicked()
     property real   radius:             ScreenTools.isMobile ? ScreenTools.defaultFontPixelHeight * 1.75 : ScreenTools.defaultFontPixelHeight * 1.25
     property real   viewportMargins:    0
     property var    toolStrip
+
+
+    width:  radius * 2
+    height: radius * 2
 
     // Should be an enum but that get's into the whole problem of creating a singleton which isn't worth the effort
     readonly property int dropLeft:     1
@@ -35,16 +40,16 @@ Item {
     readonly property real _dropMargin:         ScreenTools.defaultFontPixelWidth
 
     property var    _dropEdgeTopPoint
+    property real   _dropEdgeHeight
     property alias  _dropDownComponent: panelLoader.sourceComponent
     property real   _viewportMaxTop:    0
     property real   _viewportMaxBottom: parent.parent.height - parent.y
     property real   _viewportMaxHeight: _viewportMaxBottom - _viewportMaxTop
     property var    _dropPanelCancel
-    property var    _parentButton
 
-    function show(panelEdgeTopPoint, panelComponent, parentButton) {
-        _parentButton = parentButton
+    function show(panelEdgeTopPoint, panelEdgeHeight, panelComponent) {
         _dropEdgeTopPoint = panelEdgeTopPoint
+        _dropEdgeHeight = panelEdgeHeight
         _dropDownComponent = panelComponent
         _calcPositions()
         visible = true
@@ -54,9 +59,13 @@ Item {
     function hide() {
         if (_dropPanelCancel) {
             _dropPanelCancel.destroy()
-            _parentButton.checked = false
+        }
+        if (visible) {
             visible = false
             _dropDownComponent = undefined
+            if (toolStrip.lastClickedButton) {
+                toolStrip.lastClickedButton.checked = false
+            }
         }
     }
 

@@ -14,7 +14,6 @@
 #include "ScreenToolsController.h"
 #include <QFontDatabase>
 #include <QScreen>
-#include <QFontMetrics>
 
 #include "SettingsManager.h"
 
@@ -55,11 +54,11 @@ QString
 ScreenToolsController::normalFontFamily() const
 {
     //-- See App.SettinsGroup.json for index
-    int langID = qgcApp()->toolbox()->settingsManager()->appSettings()->qLocaleLanguage()->rawValue().toInt();
-    if(langID == QLocale::Korean) {
-        return QString("NanumGothic");
+    int langID = qgcApp()->toolbox()->settingsManager()->appSettings()->language()->rawValue().toInt();
+    if(langID == 6 /*Korean*/) {
+        return QString("fonts/NanumGothic-Regular");
     } else {
-        return QString("Open Sans");
+        return QString("opensans");
     }
 }
 
@@ -67,15 +66,10 @@ QString
 ScreenToolsController::boldFontFamily() const
 {
     //-- See App.SettinsGroup.json for index
-    int langID = qgcApp()->toolbox()->settingsManager()->appSettings()->qLocaleLanguage()->rawValue().toInt();
-    if(langID == QLocale::Korean) {
-        return QString("NanumGothic");
+    int langID = qgcApp()->toolbox()->settingsManager()->appSettings()->language()->rawValue().toInt();
+    if(langID == 6 /*Korean*/) {
+        return QString("NanumGothic-Bold");
     } else {
-        return QString("Open Sans Semibold");
+        return QString("opensans-demibold");
     }
-}
-
-double ScreenToolsController::defaultFontDescent(int pointSize) const
-{
-    return QFontMetrics(QFont(normalFontFamily(), pointSize)).descent();
 }

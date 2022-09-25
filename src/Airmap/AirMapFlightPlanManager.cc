@@ -351,7 +351,7 @@ AirMapFlightPlanManager::_endFlight()
 
 //-----------------------------------------------------------------------------
 bool
-AirMapFlightPlanManager::_collectFlightData()
+AirMapFlightPlanManager::_collectFlightDtata()
 {
     if(!_planController || !_planController->missionController()) {
         return false;
@@ -363,11 +363,10 @@ AirMapFlightPlanManager::_collectFlightData()
         qCDebug(AirMapManagerLog) << "Not enough points for a flight plan.";
         return false;
     }
-    // altitude reference for AirMap is takeoff altitude & all altitudes provided in the bounding cube are relative to takeoff already
-    _flight.takeoffCoord            = _planController->missionController()->takeoffCoordinate();
-    _flight.maxAltitudeAboveTakeoff = static_cast<float>(fmax(bc.pointNW.altitude(), bc.pointSE.altitude()));
-    _flight.coords                  = bc.polygon2D();
-    _flight.bc                      = bc;
+    _flight.maxAltitude   = static_cast<float>(fmax(bc.pointNW.altitude(), bc.pointSE.altitude()));
+    _flight.takeoffCoord  = _planController->missionController()->takeoffCoordinate();
+    _flight.coords        = bc.polygon2D();
+    _flight.bc            = bc;
     emit missionAreaChanged();
     return true;
 }
@@ -379,7 +378,7 @@ AirMapFlightPlanManager::_createFlightPlan()
     _flight.reset();
 
     //-- Get flight data
-    if(!_collectFlightData()) {
+    if(!_collectFlightDtata()) {
         return;
     }
 
@@ -512,7 +511,7 @@ AirMapFlightPlanManager::_uploadFlightPlan()
         if (!isAlive.lock()) return;
         if (_state != State::FlightUpload) return;
         FlightPlans::Create::Parameters params;
-        params.max_altitude = _flight.maxAltitudeAboveTakeoff;
+        params.max_altitude = _flight.maxAltitude;
         params.min_altitude = 0.0;
         params.buffer       = 10.f;
         params.latitude     = static_cast<float>(_flight.takeoffCoord.latitude());
@@ -567,12 +566,12 @@ AirMapFlightPlanManager::_updateFlightPlan(bool interactive)
         return;
     }
     //-- Get flight data
-    if(!_collectFlightData()) {
+    if(!_collectFlightDtata()) {
         return;
     }
 
     //-- Update local instance of the flight plan
-    _flightPlan.altitude_agl.max  = _flight.maxAltitudeAboveTakeoff;
+    _flightPlan.altitude_agl.max  = _flight.maxAltitude;
     _flightPlan.altitude_agl.min  = 0.0f;
     _flightPlan.buffer            = 2.f;
     _flightPlan.takeoff.latitude  = static_cast<float>(_flight.takeoffCoord.latitude());
@@ -836,19 +835,6 @@ AirMapFlightPlanManager::loadFlightList(QDateTime startTime, QDateTime endTime)
 {
     //-- TODO: This is not checking if the state is Idle. Again, these need to
     //   queued up and handled by a worker thread.
-    if (!_shared.client()) {
-        // Pilot needs to set an AirMap API key to retrieve flight lists.
-        // The API key is associated with the application developer. It may be
-        // compiled-in with customized versions of QGC.
-        emit error(tr("Failed to get flight lists"), tr("AirMap application API key needed for flight lists."), tr("Set your AirMap application API key in Settings -> AirMap"));
-        return;
-    }
-    if (!_shared.isLoggedIn()) {
-        // Flights are associated with the pilot's AirMap account. Anonymous
-        // users have no flights and will have an empty flight list.
-        emit error(tr("Failed to get flight lists"), tr("AirMap username/password required for flight lists."), tr("Set your AirMap username/password in Settings -> AirMap"));
-        return;
-    }
     qCDebug(AirMapManagerLog) << "Preparing load flight list";
     _loadingFlightList = true;
     emit loadingFlightListChanged();

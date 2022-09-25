@@ -27,13 +27,6 @@ Item {
     property Fact compass1Id:                       factPanelController.getParameterFact(-1, "COMPASS_DEV_ID")
     property Fact compass2Id:                       factPanelController.getParameterFact(-1, "COMPASS_DEV_ID2")
     property Fact compass3Id:                       factPanelController.getParameterFact(-1, "COMPASS_DEV_ID3")
-    property var  rgCompassId:                      [ compass1Id, compass2Id, compass3Id ]
-
-    property bool compassPrioFactsAvailable:        factPanelController.parameterExists(-1, "COMPASS_PRIO1_ID")
-    property Fact compassPrio1Fact:                 compassPrioFactsAvailable ? factPanelController.getParameterFact(-1, "COMPASS_PRIO1_ID") : _noFact
-    property Fact compassPrio2Fact:                 compassPrioFactsAvailable ? factPanelController.getParameterFact(-1, "COMPASS_PRIO2_ID") : _noFact
-    property Fact compassPrio3Fact:                 compassPrioFactsAvailable ? factPanelController.getParameterFact(-1, "COMPASS_PRIO3_ID") : _noFact
-    property var  rgCompassPrio:                    [ compassPrio1Fact, compassPrio2Fact, compassPrio3Fact ]
 
     property bool compass1Available:                compass1Id.value > 0
     property bool compass2Available:                compass2Id.value > 0
@@ -92,24 +85,4 @@ Item {
     property bool compass2Calibrated:               compass2Available ? compass2OfsXFact.value != 0.0  && compass2OfsYFact.value != 0.0  &&compass2OfsZFact.value != 0.0 : false
     property bool compass3Calibrated:               compass3Available ? compass3OfsXFact.value != 0.0  && compass3OfsYFact.value != 0.0  &&compass3OfsZFact.value != 0.0 : false
     property var  rgCompassCalibrated:              [ compass1Calibrated, compass2Calibrated, compass3Calibrated ]
-
-    property Fact declinationFact:                  factPanelController.getParameterFact(-1, "COMPASS_DEC")
-
-    // Deals with missing parameters in older fw
-    property bool ins1IdParamAvailable:             factPanelController.parameterExists(-1, "INS_ACC_ID")
-    property bool ins2IdParamAvailable:             factPanelController.parameterExists(-1, "INS_ACC2_ID")
-    property bool ins3IdParamAvailable:             factPanelController.parameterExists(-1, "INS_ACC3_ID")
-
-    property Fact ins1Id:                           insIdParamsAvailable ? factPanelController.getParameterFact(-1, "INS_ACC_ID") : _noFact
-    property Fact ins2Id:                           ins2IdParamAvailable ? factPanelController.getParameterFact(-1, "INS_ACC2_ID") : _noFact
-    property Fact ins3Id:                           ins3IdParamAvailable ? factPanelController.getParameterFact(-1, "INS_ACC3_ID") : _noFact
-    property var  rgInsId:                          [ ins1Id, ins2Id, ins3Id ]
-
-    property bool baroIdAvailable:                  factPanelController.parameterExists(-1, "BARO1_DEVID")
-
-    property Fact baro1Id:                          baroIdAvailable ? factPanelController.getParameterFact(-1, "BARO1_DEVID") : _noFact
-    property Fact baro2Id:                          baroIdAvailable ? factPanelController.getParameterFact(-1, "BARO2_DEVID") : _noFact
-    property Fact baro3Id:                          baroIdAvailable ? factPanelController.getParameterFact(-1, "BARO3_DEVID") : _noFact
-    property var  rgBaroId:                         [ baro1Id, baro2Id, baro3Id ]
-
 }

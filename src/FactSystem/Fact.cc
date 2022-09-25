@@ -278,7 +278,6 @@ void Fact::setEnumInfo(const QStringList& strings, const QVariantList& values)
 {
     if (_metaData) {
         _metaData->setEnumInfo(strings, values);
-        emit enumsChanged();
     } else {
         qWarning() << kMissingMetadata << name();
     }
@@ -301,39 +300,6 @@ QVariantList Fact::bitmaskValues(void) const
     } else {
         qWarning() << kMissingMetadata << name();
         return QVariantList();
-    }
-}
-
-/**
- * @brief Provide a list of selected strings based on the fact value with the bitmaskString/bitmaskValues map
- *
- * @return QStringList
- */
-QStringList Fact::selectedBitmaskStrings(void) const
-{
-    if (_metaData) {
-        const auto values = _metaData->bitmaskValues();
-        const auto strings = _metaData->bitmaskStrings();
-        if(values.size() != strings.size()) {
-            qWarning() << "Size of bitmask value and string is different."  << name();
-            return {};
-        }
-
-        QStringList selected;
-        for(int i = 0; i < values.size(); i++) {
-            if(rawValue().toInt() & values[i].toInt()) {
-                selected += strings[i];
-            }
-        }
-
-        if(selected.isEmpty()) {
-            selected += "Not value selected";
-        }
-
-        return selected;
-    } else {
-        qWarning() << kMissingMetadata << name();
-        return {};
     }
 }
 
@@ -580,7 +546,7 @@ QString Fact::group(void) const
 void Fact::setMetaData(FactMetaData* metaData, bool setDefaultFromMetaData)
 {
     _metaData = metaData;
-    if (setDefaultFromMetaData && metaData->defaultValueAvailable()) {
+    if (setDefaultFromMetaData) {
         setRawValue(rawDefaultValue());
     }
     emit valueChanged(cookedValue());
@@ -776,9 +742,9 @@ void Fact::_checkForRebootMessaging(void)
     if(qgcApp()) {
         if (!qgcApp()->runningUnitTests()) {
             if (vehicleRebootRequired()) {
-                qgcApp()->showRebootAppMessage(tr("Change of parameter %1 requires a Vehicle reboot to take effect.").arg(name()));
+                qgcApp()->showMessage(tr("Change of parameter %1 requires a Vehicle reboot to take effect.").arg(name()));
             } else if (qgcRebootRequired()) {
-                qgcApp()->showRebootAppMessage(tr("Change of '%1' value requires restart of %2 to take effect.").arg(shortDescription()).arg(qgcApp()->applicationName()));
+                qgcApp()->showMessage(tr("Change of '%1' value requires restart of %2 to take effect.").arg(shortDescription()).arg(qgcApp()->applicationName()));
             }
         }
     }

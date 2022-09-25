@@ -1,55 +1,50 @@
-{
-    "version":      1,
-    "fileType":  "FactMetaData",
-    "QGC.MetaData.Facts":
 [
 {
     "name":             "GimbalPitch",
-    "shortDesc": "Gimbal pitch rotation.",
+    "shortDescription": "Gimbal pitch rotation.",
     "type":             "double",
     "units":            "gimbal-degrees",
     "min":              -90,
     "max":              0,
     "decimalPlaces":    0,
-    "default":     0
+    "defaultValue":     0
 },
 {
     "name":             "EntranceAltitude",
-    "shortDesc": "Vehicle will fly to/from the structure at this altitude.",
+    "shortDescription": "Vehicle will fly to/from the structure at this altitude.",
     "type":             "double",
     "units":            "m",
     "decimalPlaces":    1,
-    "default":     50
+    "defaultValue":     50
 },
 {
     "name":             "ScanBottomAlt",
-    "shortDesc": "Altitude for the bottomost covered area of the scan. You can adjust this value such that the Bottom Layer Alt will fly above obstacles on the ground.",
+    "shortDescription": "Altitude for the bottomost covered area of the scan. You can adjust this value such that the Bottom Layer Alt will fly above obstacles on the ground.",
     "type":             "double",
     "units":            "m",
     "decimalPlaces":    1,
-    "default":     50
+    "defaultValue":     50
 },
 {
     "name":             "Layers",
-    "shortDesc": "Number of scan layers.",
+    "shortDescription": "Number of scan layers.",
     "type":             "uint32",
     "min":              1,
-    "default":     1
+    "defaultValue":     1
 },
 {
     "name":             "StructureHeight",
-    "shortDesc": "Height of structure being scanned.",
+    "shortDescription": "Height of structure being scanned.",
     "type":             "double",
     "decimalPlaces":    2,
     "units":            "m",
     "min":              1,
-    "default":     100
+    "defaultValue":     100
 },
 {
     "name":             "StartFromTop",
-    "shortDesc": "Start scanning from top of structure.",
+    "shortDescription": "Start scanning from top of structure.",
     "type":             "bool",
-    "default":     true
+    "defaultValue":     true
 }
 ]
-}

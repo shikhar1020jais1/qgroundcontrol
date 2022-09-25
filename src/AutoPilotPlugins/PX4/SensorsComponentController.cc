@@ -61,19 +61,11 @@ SensorsComponentController::SensorsComponentController(void)
     , _unknownFirmwareVersion                   (false)
     , _waitingForCancel                         (false)
 {
-    connect(_vehicle, &Vehicle::sensorsParametersResetAck, this, &SensorsComponentController::_handleParametersReset);
-
 }
 
 bool SensorsComponentController::usingUDPLink(void)
 {
-    WeakLinkInterfacePtr weakLink = _vehicle->vehicleLinkManager()->primaryLink();
-    if (weakLink.expired()) {
-        return false;
-    } else {
-        SharedLinkInterfacePtr sharedLink = weakLink.lock();
-        return sharedLink->linkConfiguration()->type() == LinkConfiguration::TypeUdp;
-    }
+    return _vehicle->priorityLink()->getLinkConfiguration()->type() == LinkConfiguration::TypeUdp;
 }
 
 /// Appends the specified text to the status log area in the ui
@@ -187,7 +179,7 @@ void SensorsComponentController::_stopCalibration(SensorsComponentController::St
         default:
             // Assume failed
             _hideAllCalAreas();
-            qgcApp()->showAppMessage(tr("Calibration failed. Calibration log will be displayed."));
+            qgcApp()->showMessage(tr("Calibration failed. Calibration log will be displayed."));
             break;
     }
     
@@ -200,31 +192,31 @@ void SensorsComponentController::_stopCalibration(SensorsComponentController::St
 void SensorsComponentController::calibrateGyro(void)
 {
     _startLogCalibration();
-    _vehicle->startCalibration(Vehicle::CalibrationGyro);
+    _uas->startCalibration(UASInterface::StartCalibrationGyro);
 }
 
 void SensorsComponentController::calibrateCompass(void)
 {
     _startLogCalibration();
-    _vehicle->startCalibration(Vehicle::CalibrationMag);
+    _uas->startCalibration(UASInterface::StartCalibrationMag);
 }
 
 void SensorsComponentController::calibrateAccel(void)
 {
     _startLogCalibration();
-    _vehicle->startCalibration(Vehicle::CalibrationAccel);
+    _uas->startCalibration(UASInterface::StartCalibrationAccel);
 }
 
 void SensorsComponentController::calibrateLevel(void)
 {
     _startLogCalibration();
-    _vehicle->startCalibration(Vehicle::CalibrationLevel);
+    _uas->startCalibration(UASInterface::StartCalibrationLevel);
 }
 
 void SensorsComponentController::calibrateAirspeed(void)
 {
     _startLogCalibration();
-    _vehicle->startCalibration(Vehicle::CalibrationPX4Airspeed);
+    _uas->startCalibration(UASInterface::StartCalibrationAirspeed);
 }
 
 void SensorsComponentController::_handleUASTextMessage(int uasId, int compId, int severity, QString text)
@@ -355,7 +347,7 @@ void SensorsComponentController::_handleUASTextMessage(int uasId, int compId, in
     
     if (text.endsWith("orientation detected")) {
         QString side = text.section(" ", 0, 0);
-        qCDebug(SensorsComponentControllerLog) << "Side started" << side;
+        qDebug() << "Side started" << side;
         
         if (side == "down") {
             _orientationCalDownSideInProgress = true;
@@ -402,7 +394,7 @@ void SensorsComponentController::_handleUASTextMessage(int uasId, int compId, in
     
     if (text.endsWith("side done, rotate to a different side")) {
         QString side = text.section(" ", 0, 0);
-        qCDebug(SensorsComponentControllerLog) << "Side finished" << side;
+        qDebug() << "Side finished" << side;
         
         if (side == "down") {
             _orientationCalDownSideInProgress = false;
@@ -493,30 +485,5 @@ void SensorsComponentController::cancelCalibration(void)
     _waitingForCancel = true;
     emit waitingForCancelChanged();
     _cancelButton->setEnabled(false);
-    _vehicle->stopCalibration(true /* showError */);
-}
-
-void SensorsComponentController::_handleParametersReset(bool success)
-{
-    if (success) {
-        qgcApp()->showAppMessage(tr("Reset successful"));
-
-        QTimer::singleShot(1000, this, [this]() {
-            _refreshParams();
-        });
-    }
-    else {
-        qgcApp()->showAppMessage(tr("Reset failed"));
-    }
-}
-
-void SensorsComponentController::resetFactoryParameters()
-{
-    auto compId = _vehicle->defaultComponentId();
-
-    _vehicle->sendMavCommand(compId,
-                             MAV_CMD_PREFLIGHT_STORAGE,
-                             true,  // showError
-                             3,     // Reset factory parameters
-                             -1);   // Don't do anything with mission storage
+    _uas->stopCalibration();
 }

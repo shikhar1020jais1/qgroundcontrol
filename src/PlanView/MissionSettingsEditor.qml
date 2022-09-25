@@ -22,22 +22,23 @@ Rectangle {
 
     property var    _masterControler:               masterController
     property var    _missionController:             _masterControler.missionController
-    property var    _controllerVehicle:             _masterControler.controllerVehicle
-    property bool   _vehicleHasHomePosition:        _controllerVehicle.homePosition.isValid
-    property bool   _showCruiseSpeed:               !_controllerVehicle.multiRotor
-    property bool   _showHoverSpeed:                _controllerVehicle.multiRotor || _controllerVehicle.vtol
-    property bool   _multipleFirmware:              !QGroundControl.singleFirmwareSupport
-    property bool   _multipleVehicleTypes:          !QGroundControl.singleVehicleSupport
+    property var    _missionVehicle:                _masterControler.controllerVehicle
+    property bool   _vehicleHasHomePosition:        _missionVehicle.homePosition.isValid
+    property bool   _offlineEditing:                _missionVehicle.isOfflineEditingVehicle
+    property bool   _enableOfflineVehicleCombos:    _offlineEditing && _noMissionItemsAdded
+    property bool   _showCruiseSpeed:               !_missionVehicle.multiRotor
+    property bool   _showHoverSpeed:                _missionVehicle.multiRotor || _missionVehicle.vtol
+    property bool   _multipleFirmware:              QGroundControl.supportedFirmwareCount > 2
+    property bool   _multipleVehicleTypes:          QGroundControl.supportedVehicleCount > 1
     property real   _fieldWidth:                    ScreenTools.defaultFontPixelWidth * 16
     property bool   _mobile:                        ScreenTools.isMobile
     property var    _savePath:                      QGroundControl.settingsManager.appSettings.missionSavePath
     property var    _fileExtension:                 QGroundControl.settingsManager.appSettings.missionFileExtension
     property var    _appSettings:                   QGroundControl.settingsManager.appSettings
     property bool   _waypointsOnlyMode:             QGroundControl.corePlugin.options.missionWaypointsOnly
-    property bool   _showCameraSection:             (_waypointsOnlyMode || QGroundControl.corePlugin.showAdvancedUI) && !_controllerVehicle.apmFirmware
+    property bool   _showCameraSection:             (_waypointsOnlyMode || QGroundControl.corePlugin.showAdvancedUI) && !_missionVehicle.apmFirmware
     property bool   _simpleMissionStart:            QGroundControl.corePlugin.options.showSimpleMissionStart
-    property bool   _showFlightSpeed:               !_controllerVehicle.vtol && !_simpleMissionStart && !_controllerVehicle.apmFirmware
-    property bool   _allowFWVehicleTypeSelection:   _noMissionItemsAdded && !globals.activeVehicle
+    property bool   _showFlightSpeed:               !_missionVehicle.vtol && !_simpleMissionStart && !_missionVehicle.apmFirmware
 
     readonly property string _firmwareLabel:    qsTr("Firmware")
     readonly property string _vehicleLabel:     qsTr("Vehicle")
@@ -45,18 +46,8 @@ Rectangle {
 
     QGCPalette { id: qgcPal }
     QGCFileDialogController { id: fileController }
-    Component { id: altModeDialogComponent; AltModeDialog { } }
 
-    Connections {
-        target: _controllerVehicle
-        function onSupportsTerrainFrameChanged() {
-            if (!_controllerVehicle.supportsTerrainFrame && _missionController.globalAltitudeMode === QGroundControl.AltitudeModeTerrainFrame) {
-                _missionController.globalAltitudeMode = QGroundControl.AltitudeModeCalcAboveTerrain
-            }
-        }
-    }
-
-    ColumnLayout {
+    Column {
         id:                 valuesColumn
         anchors.margins:    _margin
         anchors.left:       parent.left
@@ -64,55 +55,20 @@ Rectangle {
         anchors.top:        parent.top
         spacing:            _margin
 
-        QGCLabel {
-            text:           qsTr("All Altitudes")
-            font.pointSize: ScreenTools.smallFontPointSize
-        }
-        MouseArea {
-            Layout.preferredWidth:  childrenRect.width
-            Layout.preferredHeight: childrenRect.height
-            enabled:                _noMissionItemsAdded
-
-            onClicked: {
-                var removeModes = []
-                var updateFunction = function(altMode){ _missionController.globalAltitudeMode = altMode }
-                if (!_controllerVehicle.supportsTerrainFrame) {
-                    removeModes.push(QGroundControl.AltitudeModeTerrainFrame)
-                }
-                altModeDialogComponent.createObject(mainWindow, { rgRemoveModes: removeModes, updateAltModeFn: updateFunction }).open()
-            }
-
-            RowLayout {
-                spacing: ScreenTools.defaultFontPixelWidth
-                enabled: _noMissionItemsAdded
-
-                QGCLabel {
-                    id:     altModeLabel
-                    text:   QGroundControl.altitudeModeShortDescription(_missionController.globalAltitudeMode)
-                }
-                QGCColoredImage {
-                    height:     ScreenTools.defaultFontPixelHeight / 2
-                    width:      height
-                    source:     "/res/DropArrow.svg"
-                    color:      altModeLabel.color
-                }
-            }
-        }
-
-        QGCLabel {
-            text:           qsTr("Initial Waypoint Alt")
-            font.pointSize: ScreenTools.smallFontPointSize
-        }
-        FactTextField {
-            fact:               QGroundControl.settingsManager.appSettings.defaultMissionItemAltitude
-            Layout.fillWidth:   true
-        }
-
         GridLayout {
-            Layout.fillWidth:   true
-            columnSpacing:      ScreenTools.defaultFontPixelWidth
-            rowSpacing:         columnSpacing
-            columns:            2
+            anchors.left:   parent.left
+            anchors.right:  parent.right
+            columnSpacing:  ScreenTools.defaultFontPixelWidth
+            rowSpacing:     columnSpacing
+            columns:        2
+
+            QGCLabel {
+                text:       qsTr("Waypoint alt")
+            }
+            FactTextField {
+                fact:               QGroundControl.settingsManager.appSettings.defaultMissionItemAltitude
+                Layout.fillWidth:   true
+            }
 
             QGCCheckBox {
                 id:         flightSpeedCheckBox
@@ -130,9 +86,10 @@ Rectangle {
         }
 
         Column {
-            Layout.fillWidth:   true
-            spacing:            _margin
-            visible:            !_simpleMissionStart
+            anchors.left:   parent.left
+            anchors.right:  parent.right
+            spacing:        _margin
+            visible:        !_simpleMissionStart
 
             CameraSection {
                 id:         cameraSection
@@ -155,7 +112,7 @@ Rectangle {
                 anchors.left:   parent.left
                 anchors.right:  parent.right
                 text:           qsTr("Vehicle Info")
-                visible:        !_waypointsOnlyMode
+                visible:        _offlineEditing && !_waypointsOnlyMode
                 checked:        false
             }
 
@@ -173,14 +130,11 @@ Rectangle {
                     visible:            _multipleFirmware
                 }
                 FactComboBox {
-                    fact:                   QGroundControl.settingsManager.appSettings.offlineEditingFirmwareClass
+                    fact:                   QGroundControl.settingsManager.appSettings.offlineEditingFirmwareType
                     indexModel:             false
                     Layout.preferredWidth:  _fieldWidth
-                    visible:                _multipleFirmware && _allowFWVehicleTypeSelection
-                }
-                QGCLabel {
-                    text:       _controllerVehicle.firmwareTypeString
-                    visible:    _multipleFirmware && !_allowFWVehicleTypeSelection
+                    visible:                _multipleFirmware
+                    enabled:                _enableOfflineVehicleCombos
                 }
 
                 QGCLabel {
@@ -189,24 +143,11 @@ Rectangle {
                     visible:            _multipleVehicleTypes
                 }
                 FactComboBox {
-                    fact:                   QGroundControl.settingsManager.appSettings.offlineEditingVehicleClass
+                    fact:                   QGroundControl.settingsManager.appSettings.offlineEditingVehicleType
                     indexModel:             false
                     Layout.preferredWidth:  _fieldWidth
-                    visible:                _multipleVehicleTypes && _allowFWVehicleTypeSelection
-                }
-                QGCLabel {
-                    text:       _controllerVehicle.vehicleTypeString
-                    visible:    _multipleVehicleTypes && !_allowFWVehicleTypeSelection
-                }
-
-                QGCLabel {
-                    Layout.columnSpan:      2
-                    Layout.alignment:       Qt.AlignHCenter
-                    Layout.fillWidth:       true
-                    wrapMode:               Text.WordWrap
-                    font.pointSize:         ScreenTools.smallFontPointSize
-                    text:                   qsTr("The following speed values are used to calculate total mission time. They do not affect the flight speed for the mission.")
-                    visible:                _showCruiseSpeed || _showHoverSpeed
+                    visible:                _multipleVehicleTypes
+                    enabled:                _enableOfflineVehicleCombos
                 }
 
                 QGCLabel {

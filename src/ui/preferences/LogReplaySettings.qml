@@ -7,46 +7,58 @@
  *
  ****************************************************************************/
 
+
 import QtQuick          2.3
 import QtQuick.Controls 1.2
-import QtQuick.Layouts  1.2
+import QtQuick.Dialogs  1.2
 
-import QGroundControl               1.0
-import QGroundControl.Controls      1.0
-import QGroundControl.ScreenTools   1.0
-import QGroundControl.Palette       1.0
+import QGroundControl                       1.0
+import QGroundControl.Controls              1.0
+import QGroundControl.ScreenTools           1.0
+import QGroundControl.Palette               1.0
 
-RowLayout {
-    spacing: _colSpacing
-
+Column {
+    spacing:            ScreenTools.defaultFontPixelHeight * 0.5
+    anchors.margins:    ScreenTools.defaultFontPixelWidth
     function saveSettings() {
-        subEditConfig.filename = logField.text
-    }
-
-    QGCLabel { text: qsTr("Log File") }
-
-    QGCTextField {
-        id:     logField
-        text:   subEditConfig.fileName
-        width:  _secondColumnWidth
-    }
-
-    QGCButton {
-        text:       qsTr("Browse")
-        onClicked:  filePicker.openForLoad()
-    }
-
-    QGCFileDialog {
-        id:                 filePicker
-        title:              qsTr("Select Telemetery Log")
-        nameFilters:        [ qsTr("Telemetry Logs (*.%1)").arg(_logFileExtension), qsTr("All Files (*)") ]
-        selectExisting:     true
-        folder:             QGroundControl.settingsManager.appSettings.telemetrySavePath
-        onAcceptedForLoad: {
-            logField.text = file
-            close()
+        if(subEditConfig) {
+            subEditConfig.filename = logField.text
         }
-
-        property string _logFileExtension: QGroundControl.settingsManager.appSettings.telemetryFileExtension
+    }
+    Row {
+        spacing:        ScreenTools.defaultFontPixelWidth
+        QGCLabel {
+            text:       qsTr("Log File:")
+            width:      _firstColumn
+            anchors.verticalCenter: parent.verticalCenter
+        }
+        QGCTextField {
+            id:         logField
+            text:       subEditConfig && subEditConfig.linkType === LinkConfiguration.TypeLogReplay ? subEditConfig.fileName : ""
+            width:      _secondColumn
+            anchors.verticalCenter: parent.verticalCenter
+        }
+        QGCButton {
+            text:       qsTr("Browse")
+            onClicked: {
+                fileDialog.visible = true
+            }
+        }
+    }
+    FileDialog {
+        id:             fileDialog
+        title:          qsTr("Please choose a file")
+        folder:         shortcuts.home
+        visible:        false
+        selectExisting: true
+        onAccepted: {
+            if(subEditConfig) {
+                subEditConfig.fileName = fileDialog.fileUrl.toString().replace("file://", "")
+            }
+            fileDialog.visible = false
+        }
+        onRejected: {
+            fileDialog.visible = false
+        }
     }
 }

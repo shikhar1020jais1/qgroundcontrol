@@ -23,10 +23,9 @@ import QGroundControl.ScreenTools   1.0
 AnalyzePage {
     headerComponent:    headerComponent
     pageComponent:      pageComponent
-    allowPopout:        true
 
-    property var    curSystem:          controller ? controller.activeSystem : null
-    property var    curMessage:         curSystem && curSystem.messages.count ? curSystem.messages.get(curSystem.selected) : null
+    property var    curVehicle:         controller ? controller.activeVehicle : null
+    property var    curMessage:         curVehicle && curVehicle.messages.count ? curVehicle.messages.get(curVehicle.selected) : null
     property int    curCompID:          0
     property real   maxButtonWidth:     0
 
@@ -46,39 +45,21 @@ AnalyzePage {
             }
             RowLayout {
                 Layout.alignment:   Qt.AlignRight
-                visible:            curSystem ? controller.systemNames.length > 1 || curSystem.compIDsStr.length > 2 : false
-                QGCComboBox {
-                    id:             systemCombo
-                    model:          controller.systemNames
-                    sizeToContents: true
-                    visible:        controller.systemNames.length > 1
-                    onActivated:    controller.setActiveSystem(controller.systems.get(index).id);
-
-                    Connections {
-                        target: controller
-                        onActiveSystemChanged: {
-                            for (var systemIndex=0; systemIndex<controller.systems.count; systemIndex++) {
-                                if (controller.systems.get(systemIndex) == curSystem) {
-                                    systemCombo.currentIndex = systemIndex
-                                    curCompID = 0
-                                    cidCombo.currentIndex = 0
-                                    break
-                                }
-                            }
-                        }
-                    }
+                visible:            curVehicle ? curVehicle.compIDsStr.length > 2 : false
+                QGCLabel {
+                    text:           qsTr("Component ID:")
                 }
                 QGCComboBox {
                     id:             cidCombo
-                    model:          curSystem ? curSystem.compIDsStr : []
-                    sizeToContents: true
-                    visible:        curSystem ? curSystem.compIDsStr.length > 2 : false
+                    model:          curVehicle ? curVehicle.compIDsStr : []
+                    Layout.minimumWidth: ScreenTools.defaultFontPixelWidth * 10
+                    currentIndex:   0
                     onActivated: {
-                        if(curSystem && curSystem.compIDsStr.length > 1) {
+                        if(curVehicle && curVehicle.compIDsStr.length > 1) {
                             if(index < 1)
                                 curCompID = 0
                             else
-                                curCompID = curSystem.compIDs[index - 1]
+                                curCompID = curVehicle.compIDs[index - 1]
                         }
                     }
                 }
@@ -106,15 +87,15 @@ AnalyzePage {
                     anchors.right:  parent.right
                     spacing:        ScreenTools.defaultFontPixelHeight * 0.25
                     Repeater {
-                        model:      curSystem ? curSystem.messages : []
+                        model:      curVehicle ? curVehicle.messages : []
                         delegate:   MAVLinkMessageButton {
                             text:       object.name + (object.fieldSelected ?  " *" : "")
                             compID:     object.cid
-                            checked:    curSystem ? (curSystem.selected === index) : false
+                            checked:    curVehicle ? (curVehicle.selected === index) : false
                             messageHz:  object.messageHz
                             visible:    curCompID === 0 || curCompID === compID
                             onClicked: {
-                                curSystem.selected = index
+                                curVehicle.selected = index
                             }
                             Layout.fillWidth: true
                         }

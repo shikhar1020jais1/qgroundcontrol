@@ -24,12 +24,11 @@
 Q_DECLARE_LOGGING_CATEGORY(APMParameterMetaDataLog)
 Q_DECLARE_LOGGING_CATEGORY(APMParameterMetaDataVerboseLog)
 
-class APMFactMetaDataRaw : public QObject
+class APMFactMetaDataRaw
 {
-    Q_OBJECT
 public:
-    APMFactMetaDataRaw(QObject *parent = nullptr)
-        : QObject(parent), rebootRequired(false)
+    APMFactMetaDataRaw(void)
+        : rebootRequired(false)
     { }
 
     QString name;
@@ -42,7 +41,6 @@ public:
     QString incrementSize;
     QString units;
     bool    rebootRequired;
-    bool    readOnly;
     QList<QPair<QString, QString> > values;
     QList<QPair<QString, QString> > bitmask;
 };
@@ -59,7 +57,7 @@ class APMParameterMetaData : public QObject
 public:
     APMParameterMetaData(void);
 
-    FactMetaData* getMetaDataForFact(const QString& name, MAV_TYPE vehicleType, FactMetaData::ValueType_t type);
+    void addMetaDataToFact(Fact* fact, MAV_TYPE vehicleType);
     void loadParameterFactMetaDataFile(const QString& metaDataFile);
 
     static void getParameterMetaDataVersionInfo(const QString& metaDataFile, int& majorVersion, int& minorVersion);
@@ -84,9 +82,8 @@ private:
     QString mavTypeToString(MAV_TYPE vehicleTypeEnum);
     QString _groupFromParameterName(const QString& name);
 
-    bool                                            _parameterMetaDataLoaded        = false;    ///< true: parameter meta data already loaded
-    // FIXME: metadata is vehicle type specific now
-    QMap<QString, ParameterNametoFactMetaDataMap>   _vehicleTypeToParametersMap;                ///< Maps from a vehicle type to paramametertoFactMeta map>
+    bool _parameterMetaDataLoaded;   ///< true: parameter meta data already loaded
+    QMap<QString, ParameterNametoFactMetaDataMap> _vehicleTypeToParametersMap; ///< Maps from a vehicle type to paramametertoFactMeta map>
 };
 
 #endif

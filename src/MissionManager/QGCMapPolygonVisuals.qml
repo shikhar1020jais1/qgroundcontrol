@@ -29,7 +29,6 @@ Item {
     property var    mapPolygon                                  ///< QGCMapPolygon object
     property bool   interactive:        mapPolygon.interactive
     property color  interiorColor:      "transparent"
-    property color  altColor:           "transparent"
     property real   interiorOpacity:    1
     property int    borderWidth:        0
     property color  borderColor:        "black"
@@ -70,10 +69,10 @@ Item {
         _objMgrEditingVisuals.destroyObjects()
     }
 
+
     function addToolbarVisuals() {
         if (_objMgrToolVisuals.empty) {
-            var toolbar = _objMgrToolVisuals.createObject(toolbarComponent, mapControl)
-            toolbar.z = QGroundControl.zOrderWidgets
+            _objMgrToolVisuals.createObject(toolbarComponent, mapControl)
         }
     }
 
@@ -110,14 +109,17 @@ Item {
         bottomLeftCoord =   centerCoord.atDistanceAndAzimuth(halfWidthMeters, -90).atDistanceAndAzimuth(halfHeightMeters, 180)
         bottomRightCoord =  centerCoord.atDistanceAndAzimuth(halfWidthMeters, 90).atDistanceAndAzimuth(halfHeightMeters, 180)
 
-        return [ topLeftCoord, topRightCoord, bottomRightCoord, bottomLeftCoord  ]
+        return [ topLeftCoord, topRightCoord, bottomRightCoord, bottomLeftCoord, centerCoord  ]
     }
 
     /// Reset polygon back to initial default
     function _resetPolygon() {
         mapPolygon.beginReset()
         mapPolygon.clear()
-        mapPolygon.appendVertices(defaultPolygonVertices())
+        var initialVertices = defaultPolygonVertices()
+        for (var i=0; i<4; i++) {
+            mapPolygon.appendVertex(initialVertices[i])
+        }
         mapPolygon.endReset()
         _circleMode = false
     }
@@ -145,7 +147,7 @@ Item {
         var width = initialVertices[0].distanceTo(initialVertices[1])
         var height = initialVertices[1].distanceTo(initialVertices[2])
         var radius = Math.min(width, height) / 2
-        var center = initialVertices[0].atDistanceAndAzimuth(width / 2, 90).atDistanceAndAzimuth(height / 2, 180)
+        var center = initialVertices[4]
         _createCircularPolygon(center, radius)
     }
 
@@ -266,13 +268,13 @@ Item {
         QGCMenuItem {
             text:           qsTr("Edit position..." )
             visible:        _circleMode
-            onTriggered:    editCenterPositionDialog.createObject(mainWindow).open()
+            onTriggered:    mainWindow.showComponentDialog(editCenterPositionDialog, qsTr("Edit Center Position"), mainWindow.showDialogDefaultWidth, StandardButton.Close)
         }
 
         QGCMenuItem {
             text:           qsTr("Edit position..." )
             visible:        !_circleMode && menu._editingVertexIndex >= 0
-            onTriggered:    editVertexPositionDialog.createObject(mainWindow).open()
+            onTriggered:    mainWindow.showComponentDialog(editVertexPositionDialog, qsTr("Edit Vertex Position"), mainWindow.showDialogDefaultWidth, StandardButton.Close)
         }
     }
 
@@ -280,7 +282,7 @@ Item {
         id: polygonComponent
 
         MapPolygon {
-            color:          mapPolygon.showAltColor ? altColor : interiorColor
+            color:          interiorColor
             opacity:        interiorOpacity
             border.color:   borderColor
             border.width:   borderWidth
@@ -301,7 +303,7 @@ Item {
 
             sourceItem: SplitIndicator {
                 z:          _zorderSplitHandle
-                onClicked:  if(_root.interactive) mapPolygon.splitPolygonSegment(mapQuickItem.vertexIndex)
+                onClicked:  mapPolygon.splitPolygonSegment(mapQuickItem.vertexIndex)
             }
         }
     }
@@ -366,7 +368,7 @@ Item {
                 }
             }
 
-            onClicked: if(_root.interactive) menu.popupVertex(polygonVertex)
+            onClicked: menu.popupVertex(polygonVertex)
         }
     }
 
@@ -458,7 +460,6 @@ Item {
         id: editCenterPositionDialog
 
         EditPositionDialog {
-            title:      qsTr("Edit Center Position")
             coordinate: mapPolygon.center
             onCoordinateChanged: {
                 // Prevent spamming signals on vertex changes by setting centerDrag = true when changing center position.
@@ -474,8 +475,7 @@ Item {
         id: editVertexPositionDialog
 
         EditPositionDialog {
-            title:      qsTr("Edit Vertex Position")
-            coordinate: mapPolygon.vertexCoordinate(menu._editingVertexIndex)
+            coordinate:             mapPolygon.vertexCoordinate(menu._editingVertexIndex)
             onCoordinateChanged: {
                 mapPolygon.adjustVertex(menu._editingVertexIndex, coordinate)
                 mapPolygon.verifyClockwiseWinding()
@@ -523,6 +523,7 @@ Item {
             anchors.horizontalCenter:       mapControl.left
             anchors.horizontalCenterOffset: mapControl.centerViewport.left + (mapControl.centerViewport.width / 2)
             y:                              mapControl.centerViewport.top
+            z:                              QGroundControl.zOrderMapItems + 2
             availableWidth:                 mapControl.centerViewport.width
 
             QGCButton {
@@ -576,7 +577,7 @@ Item {
             z:                  QGroundControl.zOrderMapItems + 1   // Over item indicators
 
             onClicked: {
-                if (mouse.button === Qt.LeftButton && _root.interactive) {
+                if (mouse.button === Qt.LeftButton) {
                     mapPolygon.appendVertex(mapControl.toCoordinate(Qt.point(mouse.x, mouse.y), false /* clipToViewPort */))
                 }
             }
@@ -598,7 +599,7 @@ Item {
                 height:     width
                 radius:     width / 2
                 color:      "white"
-                opacity:    interiorOpacity * .90
+                opacity:    .90
             }
         }
     }

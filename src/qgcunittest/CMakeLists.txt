@@ -1,27 +1,18 @@
 
 add_library(qgcunittest
 	#FileDialogTest.cc
-	#FileDialogTest.h
 	#FileManagerTest.cc
-	#FileManagerTest.h
-	ComponentInformationCacheTest.cc
-	ComponentInformationCacheTest.h
+	#FlightGearTest.cc
 	GeoTest.cc
-	GeoTest.h
+	LinkManagerTest.cc
 	#MainWindowTest.cc
-	#MainWindowTest.h
 	MavlinkLogTest.cc
-	MavlinkLogTest.h
 	#MessageBoxTest.cc
-	#MessageBoxTest.h
 	MultiSignalSpy.cc
-	MultiSignalSpy.h
-	MultiSignalSpyV2.cc
-	MultiSignalSpyV2.h
 	#RadioConfigTest.cc
-	#RadioConfigTest.h
+	TCPLinkTest.cc
+	TCPLoopBackServer.cc
 	UnitTest.cc
-	UnitTest.h
 	UnitTestList.cc
 )
 

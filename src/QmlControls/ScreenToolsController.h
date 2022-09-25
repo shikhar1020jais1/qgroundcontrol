@@ -47,9 +47,6 @@ public:
     Q_INVOKABLE int mouseX(void) { return QCursor::pos().x(); }
     Q_INVOKABLE int mouseY(void) { return QCursor::pos().y(); }
 
-    // QFontMetrics::descent for default font
-    Q_INVOKABLE double defaultFontDescent(int pointSize) const;
-
 #if defined(__mobile__)
     bool    isMobile            () const { return true;  }
 #else
@@ -106,11 +103,12 @@ public:
     bool isDebug                () { return false; }
 #endif
 
-    bool        hasTouch            () const;
-    QString     iOSDevice           () const;
-    QString     fixedFontFamily     () const;
-    QString     normalFontFamily    () const;
-    QString     boldFontFamily      () const;
+    bool    hasTouch() const;
+
+    QString  iOSDevice          () const;
+    QString  fixedFontFamily    () const;
+    QString  normalFontFamily   () const;
+    QString  boldFontFamily     () const;
 };
 
 #endif

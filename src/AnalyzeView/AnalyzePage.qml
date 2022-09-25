@@ -26,8 +26,7 @@ Item {
     property alias  headerComponent:    headerLoader.sourceComponent
     property real   availableWidth:     width  - pageLoader.x
     property real   availableHeight:    height - mainContent.y
-    property bool   allowPopout:        false
-    property bool   popped:             false
+    property bool   poped:              false
     property real   _margins:           ScreenTools.defaultFontPixelHeight * 0.5
 
     signal popout()
@@ -48,13 +47,13 @@ Item {
         anchors.top:            parent.top
         anchors.left:           parent.left
         anchors.rightMargin:    _margins
-        anchors.right:          floatIcon.visible ? floatIcon.left : parent.right
+        anchors.right:          floatIcon.left
         spacing:                _margins
         visible:                !ScreenTools.isShortScreen && headerLoader.sourceComponent === null
         QGCLabel {
             id:                 pageNameLabel
             font.pointSize:     ScreenTools.largeFontPointSize
-            visible:            !popped
+            visible:            !poped
         }
         QGCLabel {
             id:                 pageDescriptionLabel
@@ -87,10 +86,13 @@ Item {
         source:                 "/qmlimages/FloatingWindow.svg"
         fillMode:               Image.PreserveAspectFit
         color:                  qgcPal.text
-        visible:                allowPopout && !popped && !ScreenTools.isMobile
+        visible:                !poped && !ScreenTools.isMobile
         MouseArea {
-            anchors.fill:   parent
-            onClicked:      popout()
+            anchors.fill: parent
+            onClicked: {
+                popout()
+            }
         }
     }
+
 }

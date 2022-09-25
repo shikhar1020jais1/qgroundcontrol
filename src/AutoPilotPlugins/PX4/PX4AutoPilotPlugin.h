@@ -12,7 +12,6 @@
 #define PX4AUTOPILOT_H
 
 #include "AutoPilotPlugin.h"
-#include "ActuatorComponent.h"
 #include "PX4AirframeLoader.h"
 #include "AirframeComponent.h"
 #include "PX4RadioComponent.h"
@@ -24,7 +23,6 @@
 #include "PowerComponent.h"
 #include "MotorComponent.h"
 #include "PX4TuningComponent.h"
-#include "PX4FlightBehavior.h"
 #include "SyslinkComponent.h"
 #include "Vehicle.h"
 
@@ -59,9 +57,7 @@ protected:
     CameraComponent*        _cameraComponent;
     PowerComponent*         _powerComponent;
     MotorComponent*         _motorComponent;
-    ActuatorComponent*      _actuatorComponent;
     PX4TuningComponent*     _tuningComponent;
-    PX4FlightBehavior*      _flightBehavior;
     SyslinkComponent*       _syslinkComponent;
 
 private:

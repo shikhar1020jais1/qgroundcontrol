@@ -1,55 +1,50 @@
-{
-    "version":      1,
-    "fileType":  "FactMetaData",
-    "QGC.MetaData.Facts":
 [
 {
     "name":             "usePersonalApiKey",
-    "shortDesc": "Use Personal AirMap API Key",
+    "shortDescription": "Use Personal AirMap API Key",
     "type":             "bool",
-    "default":     false
+    "defaultValue":     false
 },
 {
     "name":             "apiKey",
-    "shortDesc": "AirMap API Key",
+    "shortDescription": "AirMap API Key",
     "type":             "string",
-    "default":     ""
+    "defaultValue":     ""
 },
 {
     "name":             "clientID",
-    "shortDesc": "AirMap Client ID",
+    "shortDescription": "AirMap Client ID",
     "type":             "string",
-    "default":     ""
+    "defaultValue":     ""
 },
 {
     "name":             "userName",
-    "shortDesc": "AirMap User Name",
+    "shortDescription": "AirMap User Name",
     "type":             "string",
-    "default":     ""
+    "defaultValue":     ""
 },
 {
     "name":             "password",
-    "shortDesc": "AirMap Password",
+    "shortDescription": "AirMap Password",
     "type":             "string",
-    "default":     ""
+    "defaultValue":     ""
 },
 {
     "name":             "enableAirMap",
-    "shortDesc": "Enable AirMap",
+    "shortDescription": "Enable AirMap",
     "type":             "bool",
-    "default":     false
+    "defaultValue":     false
 },
 {
     "name":             "enableAirspace",
-    "shortDesc": "Show Airspace on Map (Experimental)",
+    "shortDescription": "Show Airspace on Map (Experimental)",
     "type":             "bool",
-    "default":     false
+    "defaultValue":     false
 },
 {
     "name":             "enableTelemetry",
-    "shortDesc": "Enable AirMap Telemetry",
+    "shortDescription": "Enable AirMap Telemetry",
     "type":             "bool",
-    "default":     false
+    "defaultValue":     false
 }
 ]
-}

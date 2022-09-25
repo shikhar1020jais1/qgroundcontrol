@@ -44,6 +44,7 @@ class QGCMapPalette : public QObject
 
     Q_PROPERTY(QColor text          READ text          NOTIFY paletteChanged)
     Q_PROPERTY(QColor textOutline   READ textOutline   NOTIFY paletteChanged)
+    Q_PROPERTY(QColor thumbJoystick READ thumbJoystick NOTIFY paletteChanged)
 
 public:    
     QGCMapPalette(QObject* parent = nullptr);
@@ -51,6 +52,9 @@ public:
     /// Text color
     QColor text(void)           const { return _text[_lightColors ? 0 : 1]; }
     QColor textOutline(void)    const { return _textOutline[_lightColors ? 0 : 1]; }
+
+    /// Thumb joystick indicator
+    QColor thumbJoystick(void)  const { return _thumbJoystick[_lightColors ? 0 : 1]; }
 
     bool lightColors(void) const { return _lightColors; }
     void setLightColors(bool lightColors);    
@@ -64,6 +68,7 @@ private:
 
     static const int _cColorGroups = 2;
 
+    static QColor _thumbJoystick[_cColorGroups];
     static QColor _text[_cColorGroups];
     static QColor _textOutline[_cColorGroups];
 };

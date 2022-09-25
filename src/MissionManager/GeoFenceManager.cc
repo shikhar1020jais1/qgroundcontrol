@@ -18,21 +18,33 @@
 QGC_LOGGING_CATEGORY(GeoFenceManagerLog, "GeoFenceManagerLog")
 
 GeoFenceManager::GeoFenceManager(Vehicle* vehicle)
-    : PlanManager       (vehicle, MAV_MISSION_TYPE_FENCE)
+    : _vehicle                  (vehicle)
+    , _planManager              (vehicle, MAV_MISSION_TYPE_FENCE)
+    , _firstParamLoadComplete   (false)
 #if defined(QGC_AIRMAP_ENABLED)
-    , _airspaceManager  (qgcApp()->toolbox()->airspaceManager())
+    , _airspaceManager            (qgcApp()->toolbox()->airspaceManager())
 #endif
 {
-    connect(this, &PlanManager::inProgressChanged,          this, &GeoFenceManager::inProgressChanged);
-    connect(this, &PlanManager::error,                      this, &GeoFenceManager::error);
-    connect(this, &PlanManager::removeAllComplete,          this, &GeoFenceManager::removeAllComplete);
-    connect(this, &PlanManager::sendComplete,               this, &GeoFenceManager::_sendComplete);
-    connect(this, &PlanManager::newMissionItemsAvailable,   this, &GeoFenceManager::_planManagerLoadComplete);
+    connect(&_planManager, &PlanManager::inProgressChanged,         this, &GeoFenceManager::inProgressChanged);
+    connect(&_planManager, &PlanManager::error,                     this, &GeoFenceManager::error);
+    connect(&_planManager, &PlanManager::removeAllComplete,         this, &GeoFenceManager::removeAllComplete);
+    connect(&_planManager, &PlanManager::sendComplete,              this, &GeoFenceManager::_sendComplete);
+    connect(&_planManager, &PlanManager::newMissionItemsAvailable,  this, &GeoFenceManager::_planManagerLoadComplete);
 }
 
 GeoFenceManager::~GeoFenceManager()
 {
 
+}
+
+bool GeoFenceManager::inProgress(void) const
+{
+    return _planManager.inProgress();
+}
+
+void GeoFenceManager::loadFromVehicle(void)
+{
+    _planManager.loadFromVehicle();
 }
 
 void GeoFenceManager::sendToVehicle(const QGeoCoordinate&   breachReturn,
@@ -105,7 +117,7 @@ void GeoFenceManager::sendToVehicle(const QGeoCoordinate&   breachReturn,
     }
 
     // Plan manager takes control of MissionItems, so no need to delete
-    writeMissionItems(fenceItems);
+    _planManager.writeMissionItems(fenceItems);
 }
 
 void GeoFenceManager::removeAll(void)
@@ -114,7 +126,7 @@ void GeoFenceManager::removeAll(void)
     _circles.clear();
     _breachReturnPoint = QGeoCoordinate();
 
-    PlanManager::removeAll();
+    _planManager.removeAll();
 }
 
 void GeoFenceManager::_sendComplete(bool error)
@@ -144,7 +156,7 @@ void GeoFenceManager::_planManagerLoadComplete(bool removeAllRequested)
     MAV_CMD expectedCommand = (MAV_CMD)0;
     int expectedVertexCount = 0;
     QGCFencePolygon nextPolygon(true /* inclusion */);
-    const QList<MissionItem*>& fenceItems = missionItems();
+    const QList<MissionItem*>& fenceItems = _planManager.missionItems();
 
     for (int i=0; i<fenceItems.count(); i++) {
         MissionItem* item = fenceItems[i];

@@ -22,9 +22,9 @@ Rectangle {
 
     Connections {
         target:                    verticalIndicator.parent
-        function onMovementStarted()        { verticalIndicator.opacity = 1.0 }
-        function onMovementEnded()          { animateOpacity.restart() }
-        function onContentHeightChanged()   {  animateOpacity.restart() }
+        onMovementStarted:         verticalIndicator.opacity = 1.0
+        onMovementEnded:           animateOpacity.restart()
+        onContentHeightChanged:    animateOpacity.restart()
     }
 
     NumberAnimation {

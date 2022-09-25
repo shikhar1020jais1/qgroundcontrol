@@ -9,42 +9,52 @@
 
 #include "TransectStyleComplexItemTest.h"
 #include "QGCApplication.h"
-#include "QGroundControlQmlGlobal.h"
 
 TransectStyleComplexItemTest::TransectStyleComplexItemTest(void)
+    : _offlineVehicle(nullptr)
 {
+    _polygonVertices << QGeoCoordinate(47.633550640000003, -122.08982199)
+                     << QGeoCoordinate(47.634129020000003, -122.08887249)
+                     << QGeoCoordinate(47.633619320000001, -122.08811074)
+                     << QGeoCoordinate(47.633189139999999, -122.08900124);
 }
 
 void TransectStyleComplexItemTest::init(void)
 {
-    TransectStyleComplexItemTestBase::init();
+    UnitTest::init();
 
-    _transectStyleItem = new TestTransectStyleItem(_masterController);
+    _offlineVehicle = new Vehicle(MAV_AUTOPILOT_PX4, MAV_TYPE_QUADROTOR, qgcApp()->toolbox()->firmwarePluginManager(), this);
+    _transectStyleItem = new TransectStyleItem(_offlineVehicle, this);
     _transectStyleItem->cameraTriggerInTurnAround()->setRawValue(false);
-    _transectStyleItem->cameraCalc()->setCameraBrand(CameraCalc::canonicalManualCameraName());
+    _transectStyleItem->cameraCalc()->cameraName()->setRawValue(_transectStyleItem->cameraCalc()->customCameraName());
     _transectStyleItem->cameraCalc()->valueSetIsDistance()->setRawValue(true);
     _transectStyleItem->cameraCalc()->distanceToSurface()->setRawValue(100);
+    _setSurveyAreaPolygon();
     _transectStyleItem->setDirty(false);
 
-    _multiSpy = new MultiSignalSpyV2;
-    QVERIFY(_multiSpy->init(_transectStyleItem));
+    _rgSignals[cameraShotsChangedIndex] =               SIGNAL(cameraShotsChanged());
+    _rgSignals[timeBetweenShotsChangedIndex] =          SIGNAL(timeBetweenShotsChanged());
+    _rgSignals[visualTransectPointsChangedIndex] =      SIGNAL(visualTransectPointsChanged());
+    _rgSignals[coveredAreaChangedIndex] =               SIGNAL(coveredAreaChanged());
+    _rgSignals[dirtyChangedIndex] =                     SIGNAL(dirtyChanged(bool));
+    _rgSignals[complexDistanceChangedIndex] =           SIGNAL(complexDistanceChanged());
+    _rgSignals[greatestDistanceToChangedIndex] =        SIGNAL(greatestDistanceToChanged());
+    _rgSignals[additionalTimeDelayChangedIndex] =       SIGNAL(additionalTimeDelayChanged());
+    _rgSignals[lastSequenceNumberChangedIndex] =        SIGNAL(lastSequenceNumberChanged(int));
+
+    _multiSpy = new MultiSignalSpy();
+    QCOMPARE(_multiSpy->init(_transectStyleItem, _rgSignals, _cSignals), true);
 }
 
 void TransectStyleComplexItemTest::cleanup(void)
 {
+    delete _transectStyleItem;
+    delete _offlineVehicle;
     delete _multiSpy;
-    _multiSpy = nullptr;
-
-    TransectStyleComplexItemTestBase::cleanup();
-
-    // These items are deleted when _masterController is deleted
-    _transectStyleItem = nullptr;
 }
 
 void TransectStyleComplexItemTest::_testDirty(void)
 {
-    auto dirtyChangedMask = _multiSpy->signalNameToMask("dirtyChanged");
-
     QVERIFY(!_transectStyleItem->dirty());
     _transectStyleItem->setDirty(false);
     QVERIFY(!_transectStyleItem->dirty());
@@ -53,7 +63,7 @@ void TransectStyleComplexItemTest::_testDirty(void)
     _transectStyleItem->setDirty(true);
     QVERIFY(_transectStyleItem->dirty());
     QVERIFY(_multiSpy->checkOnlySignalByMask(dirtyChangedMask));
-    QVERIFY(_multiSpy->pullBoolFromSignal("dirtyChanged"));
+    QVERIFY(_multiSpy->pullBoolFromSignalIndex(dirtyChangedIndex));
     _multiSpy->clearAllSignals();
 
     _transectStyleItem->setDirty(false);
@@ -77,7 +87,7 @@ void TransectStyleComplexItemTest::_testDirty(void)
     }
     rgFacts.clear();
 
-    _transectStyleItem->adjustSurveAreaPolygon();
+    _adjustSurveAreaPolygon();
     QVERIFY(_transectStyleItem->dirty());
     _transectStyleItem->setDirty(false);
     QVERIFY(!_transectStyleItem->surveyAreaPolygon()->dirty());
@@ -90,22 +100,23 @@ void TransectStyleComplexItemTest::_testDirty(void)
     _multiSpy->clearAllSignals();
 }
 
+void TransectStyleComplexItemTest::_setSurveyAreaPolygon(void)
+{
+    for (const QGeoCoordinate vertex: _polygonVertices) {
+        _transectStyleItem->surveyAreaPolygon()->appendVertex(vertex);
+    }
+}
+
 void TransectStyleComplexItemTest::_testRebuildTransects(void)
 {
-    auto coveredAreaChangedMask         = _multiSpy->signalNameToMask(SIGNAL(coveredAreaChanged));
-    auto lastSequenceNumberChangedMask  = _multiSpy->signalNameToMask(SIGNAL(lastSequenceNumberChanged));
-
-    _transectStyleItem->cameraCalc()->setCameraBrand(CameraCalc::xlatCustomCameraName());
-
     // Changing the survey polygon should trigger:
     //  _rebuildTransects calls
     //  coveredAreaChanged signal
     //  lastSequenceNumberChanged signal
-    _transectStyleItem->adjustSurveAreaPolygon();
+    _adjustSurveAreaPolygon();
     QVERIFY(_transectStyleItem->rebuildTransectsPhase1Called);
     QVERIFY(_transectStyleItem->recalcCameraShotsCalled);
-    // FIXME: Temproarily not possible
-    //QVERIFY(_transectStyleItem->recalcComplexDistanceCalled);
+    QVERIFY(_transectStyleItem->recalcComplexDistanceCalled);
     QVERIFY(_multiSpy->checkSignalsByMask(coveredAreaChangedMask | lastSequenceNumberChangedMask));
     _transectStyleItem->rebuildTransectsPhase1Called = false;
     _transectStyleItem->recalcCameraShotsCalled = false;
@@ -128,8 +139,7 @@ void TransectStyleComplexItemTest::_testRebuildTransects(void)
         changeFactValue(fact);
         QVERIFY(_transectStyleItem->rebuildTransectsPhase1Called);
         QVERIFY(_transectStyleItem->recalcCameraShotsCalled);
-        // FIXME: Temproarily not possible
-        //QVERIFY(_transectStyleItem->recalcComplexDistanceCalled);
+        QVERIFY(_transectStyleItem->recalcComplexDistanceCalled);
         QVERIFY(_multiSpy->checkSignalsByMask(lastSequenceNumberChangedMask));
         _transectStyleItem->setDirty(false);
         _multiSpy->clearAllSignals();
@@ -146,8 +156,7 @@ void TransectStyleComplexItemTest::_testRebuildTransects(void)
     changeFactValue(_transectStyleItem->cameraCalc()->imageDensity());
     QVERIFY(_transectStyleItem->rebuildTransectsPhase1Called);
     QVERIFY(_transectStyleItem->recalcCameraShotsCalled);
-    // FIXME: Temproarily not possible
-    //QVERIFY(_transectStyleItem->recalcComplexDistanceCalled);
+    QVERIFY(_transectStyleItem->recalcComplexDistanceCalled);
     QVERIFY(_multiSpy->checkSignalsByMask(lastSequenceNumberChangedMask));
     _multiSpy->clearAllSignals();
 
@@ -158,18 +167,14 @@ void TransectStyleComplexItemTest::_testRebuildTransects(void)
     changeFactValue(_transectStyleItem->cameraCalc()->distanceToSurface());
     QVERIFY(_transectStyleItem->rebuildTransectsPhase1Called);
     QVERIFY(_transectStyleItem->recalcCameraShotsCalled);
-    // FIXME: Temproarily not possible
-    //QVERIFY(_transectStyleItem->recalcComplexDistanceCalled);
+    QVERIFY(_transectStyleItem->recalcComplexDistanceCalled);
     QVERIFY(_multiSpy->checkSignalsByMask(lastSequenceNumberChangedMask));
     _multiSpy->clearAllSignals();
 }
 
 void TransectStyleComplexItemTest::_testDistanceSignalling(void)
 {
-    auto complexDistanceChangedMask     = _multiSpy->signalNameToMask(SIGNAL(complexDistanceChanged));
-    auto greatestDistanceToChangedMask  = _multiSpy->signalNameToMask(SIGNAL(greatestDistanceToChanged));
-
-    _transectStyleItem->adjustSurveAreaPolygon();
+    _adjustSurveAreaPolygon();
     QVERIFY(_multiSpy->checkSignalsByMask(complexDistanceChangedMask | greatestDistanceToChangedMask));
     _transectStyleItem->setDirty(false);
     _multiSpy->clearAllSignals();
@@ -188,83 +193,57 @@ void TransectStyleComplexItemTest::_testDistanceSignalling(void)
     rgFacts.clear();
 }
 
-void TransectStyleComplexItemTest::_testAltitudes(void)
+void TransectStyleComplexItemTest::_adjustSurveAreaPolygon(void)
 {
-    _transectStyleItem->cameraCalc()->distanceToSurface()->setRawValue(50);
-    _transectStyleItem->cameraCalc()->adjustedFootprintFrontal()->setRawValue(10);
-    _transectStyleItem->cameraCalc()->adjustedFootprintSide()->setRawValue(10);
-
-    qDebug() << _transectStyleItem->_transectCount();
-
-    QList<MissionItem*> rgItems;
-    _transectStyleItem->appendMissionItems(rgItems, this);
-
-    for (const MissionItem* missionItem : rgItems) {
-        if (missionItem->command() == MAV_CMD_NAV_WAYPOINT) {
-            qDebug() << missionItem->param7();
-        }
-    }
+    QGeoCoordinate vertex = _transectStyleItem->surveyAreaPolygon()->vertexCoordinate(0);
+    vertex.setLatitude(vertex.latitude() + 1);
+    _transectStyleItem->surveyAreaPolygon()->adjustVertex(0, vertex);
 }
 
-void TransectStyleComplexItemTest::_testFollowTerrain(void)
+void TransectStyleComplexItemTest::_testAltMode(void)
 {
-    _transectStyleItem->cameraCalc()->distanceToSurface()->setRawValue(50);
-    _transectStyleItem->cameraCalc()->adjustedFootprintFrontal()->setRawValue(0);
-    _transectStyleItem->cameraCalc()->setDistanceMode(QGroundControlQmlGlobal::AltitudeModeCalcAboveTerrain);
+    // Default should be relative
+    QVERIFY(_transectStyleItem->cameraCalc()->distanceToSurfaceRelative());
 
-    QVERIFY(QTest::qWaitFor([&]() { return _transectStyleItem->readyForSaveState() == TransectStyleComplexItem::ReadyForSave; }, 2000));
+    // Manual camera allows non-relative altitudes, validate that changing back to known
+    // camera switches back to relative
+    _transectStyleItem->cameraCalc()->cameraName()->setRawValue(_transectStyleItem->cameraCalc()->manualCameraName());
+    _transectStyleItem->cameraCalc()->setDistanceToSurfaceRelative(false);
+    _transectStyleItem->cameraCalc()->cameraName()->setRawValue(_transectStyleItem->cameraCalc()->customCameraName());
+    QVERIFY(_transectStyleItem->cameraCalc()->distanceToSurfaceRelative());
 
-    QList<MissionItem*> rgItems;
-    _transectStyleItem->appendMissionItems(rgItems, this);
+    // When you turn off terrain following mode make sure that the altitude mode changed back to relative altitudes
+    _transectStyleItem->cameraCalc()->setDistanceToSurfaceRelative(false);
+    _transectStyleItem->setFollowTerrain(true);
 
-    QList<double> expectedTerrainValues {497, 509, 512, 512 };
-    //QCOMPARE(rgItems.count(), expectedTerrainValues.count());
-    for (const MissionItem* missionItem : rgItems) {
-        QCOMPARE(missionItem->command(), MAV_CMD_NAV_WAYPOINT);
-        QCOMPARE(missionItem->frame(), MAV_FRAME_GLOBAL);
-        QCOMPARE(missionItem->param7(), expectedTerrainValues.front());
-        expectedTerrainValues.pop_front();
-    }
+    QVERIFY(!_transectStyleItem->cameraCalc()->distanceToSurfaceRelative());
+    QVERIFY(_transectStyleItem->followTerrain());
+
+    _transectStyleItem->setFollowTerrain(false);
+    QVERIFY(_transectStyleItem->cameraCalc()->distanceToSurfaceRelative());
+    QVERIFY(!_transectStyleItem->followTerrain());
 }
 
-TestTransectStyleItem::TestTransectStyleItem(PlanMasterController* masterController)
-    : TransectStyleComplexItem      (masterController, false /* flyView */, QStringLiteral("UnitTestTransect"))
+TransectStyleItem::TransectStyleItem(Vehicle* vehicle, QObject* parent)
+    : TransectStyleComplexItem      (vehicle, false /* flyView */, QStringLiteral("UnitTestTransect"), parent)
     , rebuildTransectsPhase1Called  (false)
     , recalcComplexDistanceCalled   (false)
     , recalcCameraShotsCalled       (false)
 {
-    // We use a 100m by 100m square test polygon
-    const double edgeDistance = 100;
-    surveyAreaPolygon()->appendVertex(UnitTestTerrainQuery::linearSlopeRegion.center());
-    surveyAreaPolygon()->appendVertex(surveyAreaPolygon()->vertexCoordinate(0).atDistanceAndAzimuth(edgeDistance, 90));
-    surveyAreaPolygon()->appendVertex(surveyAreaPolygon()->vertexCoordinate(1).atDistanceAndAzimuth(edgeDistance, 180));
-    surveyAreaPolygon()->appendVertex(surveyAreaPolygon()->vertexCoordinate(2).atDistanceAndAzimuth(edgeDistance, -90.0));
+
 }
 
-void TestTransectStyleItem::_rebuildTransectsPhase1(void)
+void TransectStyleItem::_rebuildTransectsPhase1(void)
 {
     rebuildTransectsPhase1Called = true;
-
-    _transects.clear();
-    if (_surveyAreaPolygon.count() < 3) {
-        return;
-    }
-
-    _transects.append(QList<TransectStyleComplexItem::CoordInfo_t>{
-        {surveyAreaPolygon()->vertexCoordinate(0), CoordTypeSurveyEntry},
-        {surveyAreaPolygon()->vertexCoordinate(2), CoordTypeSurveyExit}}
-    );
 }
 
-void TestTransectStyleItem::_recalcCameraShots(void)
+void TransectStyleItem::_recalcComplexDistance(void)
+{
+    recalcComplexDistanceCalled = true;
+}
+
+void TransectStyleItem::_recalcCameraShots(void)
 {
     recalcCameraShotsCalled = true;
 }
-
-void TestTransectStyleItem::adjustSurveAreaPolygon(void)
-{
-    QGeoCoordinate vertex = surveyAreaPolygon()->vertexCoordinate(0);
-    vertex.setLatitude(vertex.latitude() + 1);
-    surveyAreaPolygon()->adjustVertex(0, vertex);
-}
-

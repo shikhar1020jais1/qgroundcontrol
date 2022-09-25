@@ -24,7 +24,7 @@ Item {
         font.family:    ScreenTools.demiboldFontFamily
     }
     Image {
-        source:         globals.activeVehicle ? "image://QGCImages/" + globals.activeVehicle.id + "/" + globals.activeVehicle.flowImageIndex : ""
+        source:         activeVehicle ? "image://QGCImages/" + activeVehicle.id + "/" + activeVehicle.flowImageIndex : ""
         width:          parent.width * 0.5
         height:         width * 0.75
         cache:          false

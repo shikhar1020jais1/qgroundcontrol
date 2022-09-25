@@ -2,12 +2,7 @@
 if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
 	include(CTest)
 	enable_testing()
-	if(BUILD_TESTING)
-		add_definitions(-DUNITTEST_BUILD)
-	else()
-		# will prevent the definition of QT_DEBUG, which enables code that uses MockLink
-		add_compile_definitions(QT_NO_DEBUG)
-	endif()
+	add_definitions(-DUNITTEST_BUILD)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")

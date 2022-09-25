@@ -24,7 +24,6 @@ Item {
 
     property var map        ///< Map control to place item in
     property var vehicle    ///< Vehicle associated with this item
-    property bool interactive: true
 
     property var    _missionItem:           object
     property var    _takeoffIndicatorItem
@@ -79,7 +78,6 @@ Item {
             mapControl:     _root.map
             itemIndicator:  _takeoffIndicatorItem
             itemCoordinate: _missionItem.specifiesCoordinate ? _missionItem.coordinate : _missionItem.launchCoordinate
-            visible:        _root.interactive
 
             onItemCoordinateChanged: {
                 if (_missionItem.specifiesCoordinate) {
@@ -98,7 +96,7 @@ Item {
             mapControl:     _root.map
             itemIndicator:  _launchIndicatorItem
             itemCoordinate: _missionItem.launchCoordinate
-            visible:        !_missionItem.launchTakeoffAtSameLocation && _root.interactive
+            visible:        !_missionItem.launchTakeoffAtSameLocation
 
             onItemCoordinateChanged: _missionItem.launchCoordinate = itemCoordinate
         }
@@ -113,7 +111,6 @@ Item {
             missionItem:    _missionItem
             sequenceNumber: _missionItem.sequenceNumber
             onClicked:      _root.clicked(_missionItem.sequenceNumber)
-            opacity:        _root.opacity
         }
     }
 
@@ -124,7 +121,7 @@ Item {
             coordinate:     _missionItem.launchCoordinate
             anchorPoint.x:  sourceItem.anchorPointX
             anchorPoint.y:  sourceItem.anchorPointY
-            visible:        !_missionItem.launchTakeoffAtSameLocation && _root.interactive
+            visible:        !_missionItem.launchTakeoffAtSameLocation
 
             sourceItem:
                 MissionItemIndexLabel {
@@ -132,7 +129,6 @@ Item {
                     label:              qsTr("Launch")
                     highlightSelected:  true
                     onClicked:          _root.clicked(_missionItem.sequenceNumber)
-                    visible:            _root.interactive
                 }
         }
     }
@@ -144,21 +140,18 @@ Item {
         MouseArea {
             anchors.fill:   map
             z:              QGroundControl.zOrderMapItems + 1   // Over item indicators
-            visible:        !_missionItem.launchCoordinate.isValid && _root.interactive
+            visible:        !_missionItem.launchCoordinate.isValid
 
             readonly property int   _decimalPlaces: 8
 
             onClicked: {
+                console.log("mousearea click")
                 var coordinate = map.toCoordinate(Qt.point(mouse.x, mouse.y), false /* clipToViewPort */)
                 coordinate.latitude = coordinate.latitude.toFixed(_decimalPlaces)
                 coordinate.longitude = coordinate.longitude.toFixed(_decimalPlaces)
                 coordinate.altitude = coordinate.altitude.toFixed(_decimalPlaces)
                 _missionItem.launchCoordinate = coordinate
-
-                // We drop out of wizard mode after launch position is set if:
-                //  - Takeoff location is same as launch position so nothing left to do
-                //  - Not a fixed wing. Fixed wing require warning about tweaking climb out position
-                if (_missionItem.launchTakeoffAtSameLocation || !vehicle.fixedWing) {
+                if (_missionItem.launchTakeoffAtSameLocation) {
                     _missionItem.wizardMode = false
                 }
                 _objMgrMouseClick.destroyObjects()

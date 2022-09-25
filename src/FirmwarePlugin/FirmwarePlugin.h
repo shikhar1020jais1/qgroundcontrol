@@ -28,7 +28,6 @@
 class Vehicle;
 class QGCCameraControl;
 class QGCCameraManager;
-class Autotune;
 
 /// This is the base class for Firmware specific plugins
 ///
@@ -42,8 +41,6 @@ class FirmwarePlugin : public QObject
     Q_OBJECT
 
 public:
-    FirmwarePlugin ();
-
     /// Set of optional capabilites which firmware may support
     typedef enum {
         SetFlightModeCapability =           1 << 0, ///< FirmwarePlugin::setFlightMode method is supported
@@ -150,21 +147,6 @@ public:
     /// @return The minimum takeoff altitude (relative) for guided takeoff.
     virtual double minimumTakeoffAltitude(Vehicle* /*vehicle*/) { return 10; }
 
-    /// @return The maximum horizontal groundspeed for a multirotor.
-    virtual double maximumHorizontalSpeedMultirotor(Vehicle* /*vehicle*/) { return NAN; }
-
-    /// @return The maximum equivalent airspeed setpoint.
-    virtual double maximumEquivalentAirspeed(Vehicle* /*vehicle*/) { return NAN; }
-
-    /// @return The minimum equivalent airspeed setpoint
-    virtual double minimumEquivalentAirspeed(Vehicle* /*vehicle*/) { return NAN; }
-
-    /// @return Return true if we have received the ground speed limits for the mulirotor.
-    virtual bool mulirotorSpeedLimitsAvailable(Vehicle* /*vehicle*/) { return false; }
-
-    /// @return Return true if we have received the airspeed limits for fixed wing.
-    virtual bool fixedWingAirSpeedLimitsAvailable(Vehicle* /*vehicle*/) { return false; }
-
     /// Command the vehicle to start the mission
     virtual void startMission(Vehicle* vehicle);
 
@@ -173,16 +155,7 @@ public:
 
     /// Command vehicle to change altitude
     ///     @param altitudeChange If > 0, go up by amount specified, if < 0, go down by amount specified
-    ///     @param pauseVehicle true: pause vehicle prior to altitude change
-    virtual void guidedModeChangeAltitude(Vehicle* vehicle, double altitudeChange, bool pauseVehicle);
-
-        /// Command vehicle to change groundspeed
-    ///     @param groundspeed Groundspeed in m/s
-    virtual void guidedModeChangeGroundSpeed(Vehicle* vehicle, double groundspeed);
-
-    /// Command vehicle to change equivalent airspeed
-    ///     @param airspeed_equiv Equivalent airspeed in m/s
-    virtual void guidedModeChangeEquivalentAirspeed(Vehicle* vehicle, double airspeed_equiv);
+    virtual void guidedModeChangeAltitude(Vehicle* vehicle, double altitudeChange);
 
     /// Default tx mode to apply to joystick axes
     /// TX modes are as outlined here: http://www.rc-airplane-world.com/rc-transmitter-modes.html
@@ -209,6 +182,9 @@ public:
     /// (CompassMot). Default is true.
     virtual bool supportsMotorInterference(void);
 
+    /// Returns true if the firmware supports MAV_FRAME_GLOBAL_TERRAIN_ALT
+    virtual bool supportsTerrainFrame(void) const;
+
     /// Called before any mavlink message is processed by Vehicle such that the firmwre plugin
     /// can adjust any message characteristics. This is handy to adjust or differences in mavlink
     /// spec implementations such that the base code can remain mavlink generic.
@@ -220,13 +196,10 @@ public:
     /// Called before any mavlink message is sent to the Vehicle so plugin can adjust any message characteristics.
     /// This is handy to adjust or differences in mavlink spec implementations such that the base code can remain
     /// mavlink generic.
-    ///
-    /// This method must be thread safe.
-    ///
     ///     @param vehicle Vehicle message came from
     ///     @param outgoingLink Link that messae is going out on
     ///     @param message[in,out] Mavlink message to adjust if needed.
-    virtual void adjustOutgoingMavlinkMessageThreadSafe(Vehicle* vehicle, LinkInterface* outgoingLink, mavlink_message_t* message);
+    virtual void adjustOutgoingMavlinkMessage(Vehicle* vehicle, LinkInterface* outgoingLink, mavlink_message_t* message);
 
     /// Determines how to handle the first item of the mission item list. Internally to QGC the first item
     /// is always the home position.
@@ -236,32 +209,36 @@ public:
     ///     false: Do not send first item to vehicle, sequence numbers must be adjusted
     virtual bool sendHomePositionToVehicle(void);
 
+    /// Returns the parameter which is used to identify the version number of parameter set
+    virtual QString getVersionParam(void) { return QString(); }
+
     /// Returns the parameter set version info pulled from inside the meta data file. -1 if not found.
     /// Note: The implementation for this must not vary by vehicle type.
-    /// Important: Only CompInfoParam code should use this method
-    virtual void _getParameterMetaDataVersionInfo(const QString& metaDataFile, int& majorVersion, int& minorVersion);
+    virtual void getParameterMetaDataVersionInfo(const QString& metaDataFile, int& majorVersion, int& minorVersion);
 
     /// Returns the internal resource parameter meta date file.
-    /// Important: Only CompInfoParam code should use this method
-    virtual QString _internalParameterMetaDataFile(Vehicle* /*vehicle*/) { return QString(); }
+    virtual QString internalParameterMetaDataFile(Vehicle* /*vehicle*/) { return QString(); }
 
     /// Loads the specified parameter meta data file.
     /// @return Opaque parameter meta data information which must be stored with Vehicle. Vehicle is responsible to
     ///         call deleteParameterMetaData when no longer needed.
-    /// Important: Only CompInfoParam code should use this method
-    virtual QObject* _loadParameterMetaData(const QString& /*metaDataFile*/) { return nullptr; }
+    virtual QObject* loadParameterMetaData(const QString& /*metaDataFile*/) { return nullptr; }
 
     /// Returns the FactMetaData associated with the parameter name
     ///     @param opaqueParameterMetaData Opaque pointer returned from loadParameterMetaData
-    /// Important: Only CompInfoParam code should use this method
-    virtual FactMetaData* _getMetaDataForFact(QObject* /*parameterMetaData*/, const QString& /*name*/, FactMetaData::ValueType_t /* type */, MAV_TYPE /*vehicleType*/) { return nullptr; }
+    ///     @param name Parameter name
+    virtual FactMetaData* getMetaDataForFact(QObject* /*parameterMetaData*/, const QString& /*name*/, MAV_TYPE /*vehicleType*/) { return nullptr; }
+
+    /// Adds the parameter meta data to the Fact
+    ///     @param opaqueParameterMetaData Opaque pointer returned from loadParameterMetaData
+    virtual void addMetaDataToFact(QObject* /*parameterMetaData*/, Fact* /*fact*/, MAV_TYPE /*vehicleType*/) { return; }
 
     /// List of supported mission commands. Empty list for all commands supported.
-    virtual QList<MAV_CMD> supportedMissionCommands(QGCMAVLink::VehicleClass_t vehicleClass);
+    virtual QList<MAV_CMD> supportedMissionCommands(void);
 
     /// Returns the name of the mission command json override file for the specified vehicle type.
-    ///     @param vehicleClass Vehicle class to return file for, VehicleClassGeneric is a request for overrides for all vehicle types
-    virtual QString missionCommandOverrides(QGCMAVLink::VehicleClass_t vehicleClass) const;
+    ///     @param vehicleType Vehicle type to return file for, MAV_TYPE_GENERIC is a request for overrides for all vehicle types
+    virtual QString missionCommandOverrides(MAV_TYPE vehicleType) const;
 
     /// Returns the mapping structure which is used to map from one parameter name to another based on firmware version.
     virtual const remapParamNameMajorVersionMap_t& paramNameRemapMajorVersionMap(void) const;
@@ -293,15 +270,10 @@ public:
     /// Return the resource file which contains the vehicle icon used in the compass
     virtual QString vehicleImageCompass(const Vehicle* vehicle) const;
 
-    /// Returns the list of toolbar tool indicators associated with a vehicle
-    ///     signals toolIndicatorsChanged
-    /// @return A list of QUrl with the indicators
-    virtual const QVariantList& toolIndicators(const Vehicle* vehicle);
-
-    /// Returns the list of toolbar mode indicators associated with a vehicle
-    ///     signals modeIndicatorsChanged
-    /// @return A list of QUrl with the indicators
-    virtual const QVariantList& modeIndicators(const Vehicle* vehicle);
+    /// Allows the core plugin to override the toolbar indicators
+    ///     signals toolbarIndicatorsChanged
+    /// @return A list of QUrl with the indicators (see MainToolBarIndicators.qml)
+    virtual const QVariantList& toolBarIndicators(const Vehicle* vehicle);
 
     /// Returns a list of CameraMetaData objects for available cameras on the vehicle.
     /// TODO: This should go into QGCCameraManager
@@ -315,6 +287,9 @@ public:
 
     /// Returns a pointer to a dictionary of firmware-specific FactGroups
     virtual QMap<QString, FactGroup*>* factGroups(void);
+
+    /// @true: When flying a mission the vehicle is always facing towards the next waypoint
+    virtual bool vehicleYawsToNextWaypointInMission(const Vehicle* vehicle) const;
 
     /// Returns the data needed to do battery consumption calculations
     ///     @param[out] mAhBattery Battery milliamp-hours rating (0 for no battery data available)
@@ -331,6 +306,9 @@ public:
     ///     @param[out] yawSupported Gimbal supports yaw
     /// @return true: vehicle has gimbal, false: gimbal support unknown
     virtual bool hasGimbal(Vehicle* vehicle, bool& rollSupported, bool& pitchSupported, bool& yawSupported);
+
+    /// Returns true if the vehicle is a VTOL
+    virtual bool isVtol(const Vehicle* vehicle) const;
 
     /// Convert from HIGH_LATENCY2.custom_mode value to correct 32 bit value.
     virtual uint32_t highLatencyCustomModeTo32Bits(uint16_t hlCustomMode);
@@ -354,15 +332,8 @@ public:
     // FIXME: Hack workaround for non pluginize FollowMe support
     static const QString px4FollowMeFlightMode;
 
-    // gets hobbs meter from autopilot. This should be reimplmeented for each firmware
-    virtual QString getHobbsMeter(Vehicle* vehicle) { Q_UNUSED(vehicle); return "Not Supported"; }
-
-    /// Creates Autotune object.
-    virtual Autotune* createAutotune(Vehicle *vehicle);
-
 signals:
-    void toolIndicatorsChanged(void);
-    void modeIndicatorsChanged(void);
+    void toolbarIndicatorsChanged(void);
 
 protected:
     // Arms the vehicle with validation and retries
@@ -383,9 +354,7 @@ protected:
     virtual QString _versionRegex() { return QString(); }
 
 private:
-    QVariantList _toolIndicatorList;
-    QVariantList _modeIndicatorList;
-
+    QVariantList _toolBarIndicatorList;
     static QVariantList _cameraList;    ///< Standard QGC camera list
 };
 
@@ -402,11 +371,11 @@ public:
     /// @return Singleton FirmwarePlugin instance for the specified MAV_AUTOPILOT.
     virtual FirmwarePlugin* firmwarePluginForAutopilot(MAV_AUTOPILOT autopilotType, MAV_TYPE vehicleType) = 0;
 
-    /// @return List of firmware classes this plugin supports.
-    virtual QList<QGCMAVLink::FirmwareClass_t> supportedFirmwareClasses(void) const = 0;
+    /// @return List of firmware types this plugin supports.
+    virtual QList<MAV_AUTOPILOT> supportedFirmwareTypes(void) const = 0;
 
-    /// @return List of vehicle classes this plugin supports.
-    virtual QList<QGCMAVLink::VehicleClass_t> supportedVehicleClasses(void) const;
+    /// @return List of vehicle types this plugin supports.
+    virtual QList<MAV_TYPE> supportedVehicleTypes(void) const;
 };
 
 class FirmwarePluginFactoryRegister : public QObject

@@ -36,7 +36,6 @@ public:
     Q_INVOKABLE void addPoint       (QGeoCoordinate point);
     Q_INVOKABLE void removePoint    (QObject* rallyPoint);
 
-    void start                      (bool flyView) final;
     bool supported                  (void) const final;
     void save                       (QJsonObject& json) final;
     bool load                       (const QJsonObject& json, QString& errorString) final;
@@ -48,6 +47,7 @@ public:
     bool dirty                      (void) const final { return _dirty; }
     void setDirty                   (bool dirty) final;
     bool containsItems              (void) const final;
+    void managerVehicleChanged      (Vehicle* managerVehicle) final;
     bool showPlanFromManagerVehicle (void) final;
 
     QmlObjectListModel* points                  (void) { return &_points; }
@@ -62,24 +62,23 @@ signals:
     void loadComplete(void);
 
 private slots:
-    void _managerLoadComplete       (void);
-    void _managerSendComplete       (bool error);
-    void _managerRemoveAllComplete  (bool error);
-    void _setFirstPointCurrent      (void);
-    void _updateContainsItems       (void);
-    void _managerVehicleChanged     (Vehicle* managerVehicle);
+    void _managerLoadComplete(void);
+    void _managerSendComplete(bool error);
+    void _managerRemoveAllComplete(bool error);
+    void _setFirstPointCurrent(void);
+    void _updateContainsItems(void);
 
 private:
-    Vehicle*            _managerVehicle =       nullptr;
-    RallyPointManager*  _rallyPointManager =    nullptr;
-    bool                _dirty =                false;
+    RallyPointManager*  _rallyPointManager;
+    bool                _dirty;
     QmlObjectListModel  _points;
-    QObject*            _currentRallyPoint =    nullptr;
-    bool                _itemsRequested =       false;
+    QObject*            _currentRallyPoint;
+    bool                _itemsRequested;
 
-    static const int    _jsonCurrentVersion = 2;
-    static const char*  _jsonFileTypeValue;
-    static const char*  _jsonPointsKey;
+    static const int _jsonCurrentVersion = 2;
+
+    static const char* _jsonFileTypeValue;
+    static const char* _jsonPointsKey;
 };
 
 #endif

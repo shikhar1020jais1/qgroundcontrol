@@ -1,47 +1,43 @@
-{
-    "version":      1,
-    "fileType":  "FactMetaData",
-    "QGC.MetaData.Facts":
 [
 {
     "name":             "lat",
-    "shortDesc": "Latitude",
+    "shortDescription": "Latitude",
     "type":             "double",
     "decimalPlaces":    7
 },
 {
     "name":             "lon",
-    "shortDesc": "Longitude",
+    "shortDescription": "Longitude",
     "type":             "double",
     "decimalPlaces":    7
 },
 {
     "name":             "mgrs",
-    "shortDesc": "MGRS Position",
+    "shortDescription": "MGRS Position",
     "type":             "string"
 },
 {
     "name":             "hdop",
-    "shortDesc": "HDOP",
+    "shortDescription": "HDOP",
     "type":             "double",
     "decimalPlaces":    1
 },
 {
     "name":             "vdop",
-    "shortDesc": "VDOP",
+    "shortDescription": "VDOP",
     "type":             "double",
     "decimalPlaces":    1
 },
 {
     "name":             "courseOverGround",
-    "shortDesc": "Course Over Ground",
+    "shortDescription": "Course Over Ground",
     "type":             "double",
     "decimalPlaces":    1,
     "units":            "deg"
 },
 {
     "name":             "lock",
-    "shortDesc": "GPS Lock",
+    "shortDescription": "GPS Lock",
     "type":             "uint32",
     "enumStrings":      "None,None,2D Lock,3D Lock,3D DGPS Lock,3D RTK GPS Lock (float),3D RTK GPS Lock (fixed),Static (fixed)",
     "enumValues":       "0,1,2,3,4,5,6,7",
@@ -49,8 +45,7 @@
 },
 {
     "name":             "count",
-    "shortDesc": "Sat Count",
+    "shortDescription": "Sat Count",
     "type":             "uint32"
 }
 ]
-}

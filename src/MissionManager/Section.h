@@ -15,17 +15,15 @@
 
 Q_DECLARE_LOGGING_CATEGORY(SectionLog)
 
-class PlanMasterController;
-
 // A Section encapsulates a set of mission commands which can be associated with another simple mission item.
 class Section : public QObject
 {
     Q_OBJECT
 
 public:
-    Section(PlanMasterController* masterController, QObject* parent = nullptr)
-        : QObject           (parent)
-        , _masterController (masterController)
+    Section(Vehicle* vehicle, QObject* parent = nullptr)
+        : QObject(parent)
+        , _vehicle(vehicle)
     {
 
     }
@@ -64,5 +62,5 @@ signals:
     void itemCountChanged           (int itemCount);
 
 protected:
-    PlanMasterController* _masterController = nullptr;
+    Vehicle* _vehicle;
 };

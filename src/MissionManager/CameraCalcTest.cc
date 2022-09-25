@@ -9,9 +9,9 @@
 
 #include "CameraCalcTest.h"
 #include "QGCApplication.h"
-#include "PlanMasterController.h"
 
 CameraCalcTest::CameraCalcTest(void)
+    : _offlineVehicle(nullptr)
 {
 
 }
@@ -20,32 +20,29 @@ void CameraCalcTest::init(void)
 {
     UnitTest::init();
 
-    _masterController = new PlanMasterController(this);
-    _controllerVehicle = _masterController->controllerVehicle();
-    _cameraCalc = new CameraCalc(_masterController, "CameraCalcUnitTest" /* settingsGroup */, this);
-    _cameraCalc->setCameraBrand(CameraCalc::canonicalCustomCameraName());
+    _offlineVehicle = new Vehicle(MAV_AUTOPILOT_PX4, MAV_TYPE_QUADROTOR, qgcApp()->toolbox()->firmwarePluginManager(), this);
+    _cameraCalc = new CameraCalc(_offlineVehicle, "CameraCalcUnitTest" /* settingsGroup */, this);
+    _cameraCalc->cameraName()->setRawValue(_cameraCalc->customCameraName());
     _cameraCalc->setDirty(false);
 
-    _multiSpy = new MultiSignalSpyV2();
-    QVERIFY(_multiSpy->init(_cameraCalc));
+    _rgSignals[dirtyChangedIndex] =                     SIGNAL(dirtyChanged(bool));
+    _rgSignals[imageFootprintSideChangedIndex] =        SIGNAL(imageFootprintSideChanged(double));
+    _rgSignals[imageFootprintFrontalChangedIndex] =     SIGNAL(imageFootprintFrontalChanged(double));
+    _rgSignals[distanceToSurfaceRelativeChangedIndex] = SIGNAL(distanceToSurfaceRelativeChanged(bool));
+
+    _multiSpy = new MultiSignalSpy();
+    QCOMPARE(_multiSpy->init(_cameraCalc, _rgSignals, _cSignals), true);
 }
 
 void CameraCalcTest::cleanup(void)
 {
-    delete _masterController;
     delete _cameraCalc;
+    delete _offlineVehicle;
     delete _multiSpy;
-
-    _masterController   = nullptr;
-    _cameraCalc         = nullptr;
-    _multiSpy           = nullptr;
 }
 
 void CameraCalcTest::_testDirty(void)
 {
-    const char* dirtyChangedSignal  = "dirtyChanged";
-    auto        dirtyChangedMask    = _multiSpy->signalNameToMask(dirtyChangedSignal);
-
     QVERIFY(!_cameraCalc->dirty());
     _cameraCalc->setDirty(false);
     QVERIFY(!_cameraCalc->dirty());
@@ -54,7 +51,7 @@ void CameraCalcTest::_testDirty(void)
     _cameraCalc->setDirty(true);
     QVERIFY(_cameraCalc->dirty());
     QVERIFY(_multiSpy->checkOnlySignalByMask(dirtyChangedMask));
-    QVERIFY(_multiSpy->pullBoolFromSignal(dirtyChangedSignal));
+    QVERIFY(_multiSpy->pullBoolFromSignalIndex(dirtyChangedIndex));
     _multiSpy->clearAllSignals();
 
     _cameraCalc->setDirty(false);
@@ -86,11 +83,11 @@ void CameraCalcTest::_testDirty(void)
     rgFacts.clear();
 
 
-    _cameraCalc->setDistanceMode(_cameraCalc->distanceMode() == QGroundControlQmlGlobal::AltitudeModeRelative ? QGroundControlQmlGlobal::AltitudeModeAbsolute : QGroundControlQmlGlobal::AltitudeModeRelative);
+    _cameraCalc->setDistanceToSurfaceRelative(!_cameraCalc->distanceToSurfaceRelative());
     QVERIFY(_cameraCalc->dirty());
     _multiSpy->clearAllSignals();
 
-    _cameraCalc->setCameraBrand(CameraCalc::canonicalManualCameraName());
+    _cameraCalc->cameraName()->setRawValue(_cameraCalc->manualCameraName());
     QVERIFY(_cameraCalc->dirty());
     _multiSpy->clearAllSignals();
 }

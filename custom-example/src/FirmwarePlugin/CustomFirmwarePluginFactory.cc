@@ -19,25 +19,18 @@ CustomFirmwarePluginFactory CustomFirmwarePluginFactoryImp;
 CustomFirmwarePluginFactory::CustomFirmwarePluginFactory()
     : _pluginInstance(nullptr)
 {
-
 }
 
-QList<QGCMAVLink::FirmwareClass_t> CustomFirmwarePluginFactory::supportedFirmwareClasses() const
+QList<MAV_AUTOPILOT> CustomFirmwarePluginFactory::supportedFirmwareTypes() const
 {
-    QList<QGCMAVLink::FirmwareClass_t> firmwareClasses;
-    firmwareClasses.append(QGCMAVLink::FirmwareClassPX4);
-    return firmwareClasses;
+    QList<MAV_AUTOPILOT> list;
+    list.append(MAV_AUTOPILOT_PX4);
+    return list;
 }
 
-QList<QGCMAVLink::VehicleClass_t> CustomFirmwarePluginFactory::supportedVehicleClasses(void) const
+FirmwarePlugin* CustomFirmwarePluginFactory::firmwarePluginForAutopilot(MAV_AUTOPILOT autopilotType, MAV_TYPE vehicleType)
 {
-    QList<QGCMAVLink::VehicleClass_t> vehicleClasses;
-    vehicleClasses.append(QGCMAVLink::VehicleClassMultiRotor);
-    return vehicleClasses;
-}
-
-FirmwarePlugin* CustomFirmwarePluginFactory::firmwarePluginForAutopilot(MAV_AUTOPILOT autopilotType, MAV_TYPE /*vehicleType*/)
-{
+    Q_UNUSED(vehicleType);
     if (autopilotType == MAV_AUTOPILOT_PX4) {
         if (!_pluginInstance) {
             _pluginInstance = new CustomFirmwarePlugin;

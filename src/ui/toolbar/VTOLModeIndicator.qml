@@ -35,11 +35,11 @@ QGCComboBox {
     onActivated: {
         if (index == 0) {
             if (_fwdFlight) {
-                mainWindow.vtolTransitionToMRFlightRequest()
+                mainWindow.vtolTransitionToMRFlight()
             }
         } else {
             if (!_fwdFlight) {
-                mainWindow.vtolTransitionToFwdFlightRequest()
+                mainWindow.vtolTransitionToFwdFlight()
             }
         }
         currentIndex = -1

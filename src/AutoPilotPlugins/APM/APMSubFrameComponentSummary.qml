@@ -47,12 +47,12 @@ Item {
 
         VehicleSummaryRow {
             labelText: qsTr("Firmware Version")
-            valueText: globals.activeVehicle.firmwareMajorVersion == -1 ? qsTr("Unknown") : globals.activeVehicle.firmwareMajorVersion + "." + globals.activeVehicle.firmwareMinorVersion + "." + globals.activeVehicle.firmwarePatchVersion + " " + globals.activeVehicle.firmwareVersionTypeString
+            valueText: activeVehicle.firmwareMajorVersion == -1 ? qsTr("Unknown") : activeVehicle.firmwareMajorVersion + "." + activeVehicle.firmwareMinorVersion + "." + activeVehicle.firmwarePatchVersion + " " + activeVehicle.firmwareVersionTypeString
         }
 
         VehicleSummaryRow {
             labelText: qsTr("Git Revision")
-            valueText: globals.activeVehicle.gitHash == -1 ? qsTr("Unknown") : globals.activeVehicle.gitHash
+            valueText: activeVehicle.gitHash == -1 ? qsTr("Unknown") : activeVehicle.gitHash
         }
     }
 }

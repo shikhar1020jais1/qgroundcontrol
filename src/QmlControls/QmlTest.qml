@@ -463,19 +463,19 @@ Rectangle {
                             enabled: false
                         }
 
-                        // ToolStripHoverButton
+                        // QGCHoverButton
                         Loader {
                             sourceComponent: ctlRowHeader
-                            property string text: "ToolStripHoverButton"
+                            property string text: "QGCHoverButton"
                         }
-                        ToolStripHoverButton {
+                        QGCHoverButton {
                             width:  ctlPrevColumn._colWidth
                             height: ctlPrevColumn._height * 2
                             text:   qsTr("Hover Button")
                             radius: ScreenTools.defaultFontPointSize
                             imageSource: "/qmlimages/Gears.svg"
                         }
-                        ToolStripHoverButton {
+                        QGCHoverButton {
                             width:  ctlPrevColumn._colWidth
                             height: ctlPrevColumn._height * 2
                             text:   qsTr("Hover Button")

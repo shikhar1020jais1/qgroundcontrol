@@ -188,12 +188,12 @@ void MissionCommandTreeTest::testOverride(void)
 {
     // Generic/Generic should not have any overrides
     Vehicle* vehicle = new Vehicle(MAV_AUTOPILOT_GENERIC, MAV_TYPE_GENERIC, qgcApp()->toolbox()->firmwarePluginManager());
-    _checkBaseValues(_commandTree->getUIInfo(vehicle, QGCMAVLink::VehicleClassGeneric, (MAV_CMD)4), 4);
+    _checkBaseValues(_commandTree->getUIInfo(vehicle, (MAV_CMD)4), 4);
     delete vehicle;
 
     // Generic/FixedWing should have overrides
     vehicle = new Vehicle(MAV_AUTOPILOT_GENERIC, MAV_TYPE_FIXED_WING, qgcApp()->toolbox()->firmwarePluginManager());
-    _checkOverrideValues(_commandTree->getUIInfo(vehicle, QGCMAVLink::VehicleClassGeneric, (MAV_CMD)4), 4);
+    _checkOverrideValues(_commandTree->getUIInfo(vehicle, (MAV_CMD)4), 4);
     delete vehicle;
 }
 
@@ -203,18 +203,18 @@ void MissionCommandTreeTest::testAllTrees(void)
     QList<MAV_TYPE>         vehicleList;
 
     firmwareList << MAV_AUTOPILOT_GENERIC << MAV_AUTOPILOT_PX4 << MAV_AUTOPILOT_ARDUPILOTMEGA;
-    vehicleList << MAV_TYPE_GENERIC << MAV_TYPE_QUADROTOR << MAV_TYPE_FIXED_WING << MAV_TYPE_GROUND_ROVER << MAV_TYPE_SUBMARINE << MAV_TYPE_VTOL_TAILSITTER_QUADROTOR;
+    vehicleList << MAV_TYPE_GENERIC << MAV_TYPE_QUADROTOR << MAV_TYPE_FIXED_WING << MAV_TYPE_GROUND_ROVER << MAV_TYPE_SUBMARINE << MAV_TYPE_VTOL_QUADROTOR;
 
     // This will cause all of the variants of collapsed trees to be built
     for(MAV_AUTOPILOT firmwareType: firmwareList) {
         for (MAV_TYPE vehicleType: vehicleList) {
-            if (firmwareType == MAV_AUTOPILOT_ARDUPILOTMEGA && vehicleType == MAV_TYPE_VTOL_TAILSITTER_QUADROTOR) {
+            if (firmwareType == MAV_AUTOPILOT_ARDUPILOTMEGA && vehicleType == MAV_TYPE_VTOL_QUADROTOR) {
                 // VTOL in ArduPilot shows up as plane so we can test this pair
                 continue;
             }
             qDebug() << firmwareType << vehicleType;
             Vehicle* vehicle = new Vehicle(firmwareType, vehicleType, qgcApp()->toolbox()->firmwarePluginManager());
-            QVERIFY(qgcApp()->toolbox()->missionCommandTree()->getUIInfo(vehicle, QGCMAVLink::VehicleClassMultiRotor, MAV_CMD_NAV_WAYPOINT) != nullptr);
+            QVERIFY(qgcApp()->toolbox()->missionCommandTree()->getUIInfo(vehicle, MAV_CMD_NAV_WAYPOINT) != nullptr);
             delete vehicle;
         }
     }

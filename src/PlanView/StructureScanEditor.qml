@@ -49,30 +49,47 @@ Rectangle {
 
     QGCPalette { id: qgcPal; colorGroupEnabled: true }
 
-    ColumnLayout {
+    Column {
         id:                 editorColumn
         anchors.margins:    _margin
         anchors.top:        parent.top
         anchors.left:       parent.left
         anchors.right:      parent.right
 
-        QGCLabel {
-                id:                 wizardLabel
+        ColumnLayout {
+            id:             wizardColumn
+            anchors.left:   parent.left
+            anchors.right:  parent.right
+            spacing:        _margin
+            visible:        !missionItem.structurePolygon.isValid || missionItem.wizardMode
+
+            QGCLabel {
                 Layout.fillWidth:   true
                 wrapMode:           Text.WordWrap
-                horizontalAlignment:    Text.AlignHCenter
                 text:               qsTr("Use the Polygon Tools to create the polygon which outlines the structure.")
-                visible:        !missionItem.structurePolygon.isValid || missionItem.wizardMode
             }
 
-        ColumnLayout {
-            Layout.fillWidth:   true
+            QGCButton {
+                text:               qsTr("Done With Polygon")
+                Layout.fillWidth:   true
+                enabled:            missionItem.structurePolygon.isValid && !missionItem.structurePolygon.traceMode
+                onClicked: {
+                    missionItem.wizardMode = false
+                    editorRoot.selectNextNotReadyItem()
+                }
+            }
+        }
+
+        Column {
+            anchors.left:   parent.left
+            anchors.right:  parent.right
             spacing:        _margin
-            visible:        !wizardLabel.visible
+            visible:        !wizardColumn.visible
 
             QGCTabBar {
                 id:             tabBar
-                Layout.fillWidth:   true
+                anchors.left:   parent.left
+                anchors.right:  parent.right
 
                 Component.onCompleted: currentIndex = 0
 
@@ -80,20 +97,23 @@ Rectangle {
                 QGCTabButton { text: qsTr("Camera") }
             }
 
-            ColumnLayout {
-                Layout.fillWidth:   true
+            Column {
+                anchors.left:       parent.left
+                anchors.right:      parent.right
                 spacing:            _margin
                 visible:            tabBar.currentIndex == 0
 
                 QGCLabel {
-                    Layout.fillWidth:   true
+                    anchors.left:   parent.left
+                    anchors.right:  parent.right
                     text:           qsTr("Note: Polygon respresents structure surface not vehicle flight path.")
                     wrapMode:       Text.WordWrap
                     font.pointSize: ScreenTools.smallFontPointSize
                 }
 
                 QGCLabel {
-                    Layout.fillWidth:   true
+                    anchors.left:   parent.left
+                    anchors.right:  parent.right
                     text:           qsTr("WARNING: Photo interval is below minimum interval (%1 secs) supported by camera.").arg(_cameraMinTriggerInterval.toFixed(1))
                     wrapMode:       Text.WordWrap
                     color:          qgcPal.warningText
@@ -101,27 +121,30 @@ Rectangle {
                 }
 
                 CameraCalcGrid {
-                    Layout.fillWidth:   true
                     cameraCalc:                     missionItem.cameraCalc
                     vehicleFlightIsFrontal:         false
                     distanceToSurfaceLabel:         qsTr("Scan Distance")
+                    distanceToSurfaceAltitudeMode:  QGroundControl.AltitudeModeNone
                     frontalDistanceLabel:           qsTr("Layer Height")
                     sideDistanceLabel:              qsTr("Trigger Distance")
                 }
 
                 SectionHeader {
                     id:             scanHeader
-                    Layout.fillWidth:   true
+                    anchors.left:   parent.left
+                    anchors.right:  parent.right
                     text:           qsTr("Scan")
                 }
 
-                ColumnLayout {
-                    Layout.fillWidth:   true
+                Column {
+                    anchors.left:   parent.left
+                    anchors.right:  parent.right
                     spacing:        _margin
                     visible:        scanHeader.checked
 
                     GridLayout {
-                        Layout.fillWidth:   true
+                        anchors.left:   parent.left
+                        anchors.right:  parent.right
                         columnSpacing:  _margin
                         rowSpacing:     _margin
                         columns:        2
@@ -180,7 +203,8 @@ Rectangle {
 
                 SectionHeader {
                     id:             statsHeader
-                    Layout.fillWidth:   true
+                    anchors.left:   parent.left
+                    anchors.right:  parent.right
                     text:           qsTr("Statistics")
                 }
 
@@ -193,13 +217,13 @@ Rectangle {
                     QGCLabel { text: missionItem.layers.valueString }
 
                     QGCLabel { text: qsTr("Layer Height") }
-                    QGCLabel { text: missionItem.cameraCalc.adjustedFootprintFrontal.valueString + " " + QGroundControl.unitsConversion.appSettingsHorizontalDistanceUnitsString }
+                    QGCLabel { text: missionItem.cameraCalc.adjustedFootprintFrontal.valueString + " " + QGroundControl.appSettingsDistanceUnitsString }
 
                     QGCLabel { text: qsTr("Top Layer Alt") }
-                    QGCLabel { text: QGroundControl.unitsConversion.metersToAppSettingsHorizontalDistanceUnits(missionItem.topFlightAlt).toFixed(1) + " " + QGroundControl.unitsConversion.appSettingsHorizontalDistanceUnitsString }
+                    QGCLabel { text: QGroundControl.metersToAppSettingsDistanceUnits(missionItem.topFlightAlt).toFixed(1) + " " + QGroundControl.appSettingsDistanceUnitsString }
 
                     QGCLabel { text: qsTr("Bottom Layer Alt") }
-                    QGCLabel { text: QGroundControl.unitsConversion.metersToAppSettingsHorizontalDistanceUnits(missionItem.bottomFlightAlt).toFixed(1) + " " + QGroundControl.unitsConversion.appSettingsHorizontalDistanceUnitsString }
+                    QGCLabel { text: QGroundControl.metersToAppSettingsDistanceUnits(missionItem.bottomFlightAlt).toFixed(1) + " " + QGroundControl.appSettingsDistanceUnitsString }
 
                     QGCLabel { text: qsTr("Photo Count") }
                     QGCLabel { text: missionItem.cameraShots }
@@ -208,18 +232,23 @@ Rectangle {
                     QGCLabel { text: missionItem.timeBetweenShots.toFixed(1) + " " + qsTr("secs") }
 
                     QGCLabel { text: qsTr("Trigger Distance") }
-                    QGCLabel { text: missionItem.cameraCalc.adjustedFootprintSide.valueString + " " + QGroundControl.unitsConversion.appSettingsHorizontalDistanceUnitsString }
+                    QGCLabel { text: missionItem.cameraCalc.adjustedFootprintSide.valueString + " " + QGroundControl.appSettingsDistanceUnitsString }
                 }
             } // Grid Column
 
-            ColumnLayout {
-                Layout.fillWidth:   true
+            Column {
+                anchors.left:       parent.left
+                anchors.right:      parent.right
                 spacing:            _margin
                 visible:            tabBar.currentIndex == 1
 
                 CameraCalcCamera {
-                    Layout.fillWidth:   true
-                    cameraCalc: missionItem.cameraCalc
+                    cameraCalc:                     missionItem.cameraCalc
+                    vehicleFlightIsFrontal:         false
+                    distanceToSurfaceLabel:         qsTr("Scan Distance")
+                    distanceToSurfaceAltitudeMode:  QGroundControl.AltitudeModeNone
+                    frontalDistanceLabel:           qsTr("Layer Height")
+                    sideDistanceLabel:              qsTr("Trigger Distance")
                 }
             }
         }

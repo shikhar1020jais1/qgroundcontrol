@@ -32,12 +32,9 @@ class Vehicle;
 class LinkInterface;
 class QmlObjectListModel;
 class VideoReceiver;
-class VideoSink;
 class PlanMasterController;
 class QGCCameraManager;
 class QGCCameraControl;
-class QQuickItem;
-class InstrumentValueAreaController;
 
 class QGCCorePlugin : public QGCTool
 {
@@ -46,19 +43,17 @@ public:
     QGCCorePlugin(QGCApplication* app, QGCToolbox* toolbox);
     ~QGCCorePlugin();
 
-    Q_PROPERTY(QVariantList         settingsPages                   READ settingsPages                                  NOTIFY settingsPagesChanged)
-    Q_PROPERTY(QVariantList         analyzePages                    READ analyzePages                                   NOTIFY analyzePagesChanged)
-    Q_PROPERTY(int                  defaultSettings                 READ defaultSettings                                CONSTANT)
-    Q_PROPERTY(QGCOptions*          options                         READ options                                        CONSTANT)
-    Q_PROPERTY(bool                 showTouchAreas                  READ showTouchAreas         WRITE setShowTouchAreas NOTIFY showTouchAreasChanged)
-    Q_PROPERTY(bool                 showAdvancedUI                  READ showAdvancedUI         WRITE setShowAdvancedUI NOTIFY showAdvancedUIChanged)
-    Q_PROPERTY(QString              showAdvancedUIMessage           READ showAdvancedUIMessage                          CONSTANT)
-    Q_PROPERTY(QString              brandImageIndoor                READ brandImageIndoor                               CONSTANT)
-    Q_PROPERTY(QString              brandImageOutdoor               READ brandImageOutdoor                              CONSTANT)
-    Q_PROPERTY(QmlObjectListModel*  customMapItems                  READ customMapItems                                 CONSTANT)
-    Q_PROPERTY(QVariantList         toolBarIndicators               READ toolBarIndicators                              NOTIFY toolBarIndicatorsChanged)
-    Q_PROPERTY(int                  unitsFirstRunPromptId           MEMBER unitsFirstRunPromptId                        CONSTANT)
-    Q_PROPERTY(int                  offlineVehicleFirstRunPromptId  MEMBER offlineVehicleFirstRunPromptId               CONSTANT)
+    Q_PROPERTY(QVariantList         settingsPages           READ settingsPages                                  NOTIFY settingsPagesChanged)
+    Q_PROPERTY(QVariantList         analyzePages            READ analyzePages                                   NOTIFY analyzePagesChanged)
+    Q_PROPERTY(QVariantList         instrumentPages         READ instrumentPages                                NOTIFY instrumentPagesChanged)
+    Q_PROPERTY(int                  defaultSettings         READ defaultSettings                                CONSTANT)
+    Q_PROPERTY(QGCOptions*          options                 READ options                                        CONSTANT)
+    Q_PROPERTY(bool                 showTouchAreas          READ showTouchAreas         WRITE setShowTouchAreas NOTIFY showTouchAreasChanged)
+    Q_PROPERTY(bool                 showAdvancedUI          READ showAdvancedUI         WRITE setShowAdvancedUI NOTIFY showAdvancedUIChanged)
+    Q_PROPERTY(QString              showAdvancedUIMessage   READ showAdvancedUIMessage                          CONSTANT)
+    Q_PROPERTY(QString              brandImageIndoor        READ brandImageIndoor                               CONSTANT)
+    Q_PROPERTY(QString              brandImageOutdoor       READ brandImageOutdoor                              CONSTANT)
+    Q_PROPERTY(QmlObjectListModel*  customMapItems          READ customMapItems                                 CONSTANT)
 
     Q_INVOKABLE bool guidedActionsControllerLogging() const;
 
@@ -69,6 +64,10 @@ public:
     /// The list of pages/buttons under the Analyze Menu
     /// @return A list of QmlPageInfo
     virtual QVariantList& analyzePages();
+
+    /// The list of PageWidget pages shown in the instrument panel
+    /// @return A list of QmlPageInfo
+    virtual QVariantList& instrumentPages();
 
     /// The default settings panel to show
     /// @return The settings index
@@ -104,23 +103,16 @@ public:
     /// Allows a plugin to override the specified color name from the palette
     virtual void paletteOverride(QString colorName, QGCPalette::PaletteColorInfo_t& colorInfo);
 
-    virtual void factValueGridCreateDefaultSettings(const QString& defaultSettingsGroup);
-
-    /// Allows the plugin to override or get access to the QmlApplicationEngine to do things like add import
-    /// path or stuff things into the context prior to window creation.
-    virtual QQmlApplicationEngine* createQmlApplicationEngine(QObject* parent);
+    /// Allows the plugin to override the default settings for the Values Widget large and small values
+    virtual void valuesWidgetDefaultSettings(QStringList& largeValues, QStringList& smallValues);
 
     /// Allows the plugin to override the creation of the root (native) window.
-    virtual void createRootWindow(QQmlApplicationEngine* qmlEngine);
+    virtual QQmlApplicationEngine* createRootWindow(QObject* parent);
 
     /// Allows the plugin to override the creation of VideoManager.
     virtual VideoManager* createVideoManager(QGCApplication* app, QGCToolbox* toolbox);
     /// Allows the plugin to override the creation of VideoReceiver.
     virtual VideoReceiver* createVideoReceiver(QObject* parent);
-    /// Allows the plugin to override the creation of VideoSink.
-    virtual void* createVideoSink(QObject* parent, QQuickItem* widget);
-    /// Allows the plugin to override the release of VideoSink.
-    virtual void releaseVideoSink(void* sink);
 
     /// Allows the plugin to see all mavlink traffic to a vehicle
     /// @return true: Allow vehicle to continue processing, false: Vehicle should not process message
@@ -161,27 +153,6 @@ public:
     /// @return Complex items to be made available to user
     virtual QStringList complexMissionItemNames(Vehicle* /*vehicle*/, const QStringList& complexMissionItemNames) { return complexMissionItemNames; }
 
-    /// Returns the standard list of first run prompt ids for possible display. Actual display is based on the
-    /// current AppSettings::firstRunPromptIds value. The order of this list also determines the order the prompts
-    /// will be displayed in.
-    virtual QList<int> firstRunPromptStdIds(void);
-
-    /// Returns the custom build list of first run prompt ids for possible display. Actual display is based on the
-    /// current AppSettings::firstRunPromptIds value. The order of this list also determines the order the prompts
-    /// will be displayed in.
-    virtual QList<int> firstRunPromptCustomIds(void);
-
-    /// Returns the resource which contains the specified first run prompt for display
-    Q_INVOKABLE virtual QString firstRunPromptResource(int id);
-
-    /// Returns the list of toolbar indicators which are not related to a vehicle
-    ///     signals toolbarIndicatorsChanged
-    /// @return A list of QUrl with the indicators
-    virtual const QVariantList& toolBarIndicators(void);
-
-    /// Returns the list of first run prompt ids which need to be displayed according to current settings
-    Q_INVOKABLE QVariantList firstRunPromptsToShow(void);
-
     bool showTouchAreas() const { return _showTouchAreas; }
     bool showAdvancedUI() const { return _showAdvancedUI; }
     void setShowTouchAreas(bool show);
@@ -190,27 +161,28 @@ public:
     // Override from QGCTool
     void                            setToolbox              (QGCToolbox* toolbox);
 
-    // Standard first run prompt ids
-    static const int unitsFirstRunPromptId =            1;
-    static const int offlineVehicleFirstRunPromptId =   2;
-
-    // Custom builds can start there first run prompt ids from here
-    static const int firstRunPromptIdsFirstCustomId = 10000;
-
 signals:
-    void settingsPagesChanged       ();
-    void analyzePagesChanged        ();
-    void showTouchAreasChanged      (bool showTouchAreas);
-    void showAdvancedUIChanged      (bool showAdvancedUI);
-    void toolBarIndicatorsChanged   ();
+    void settingsPagesChanged   ();
+    void analyzePagesChanged    ();
+    void instrumentPagesChanged ();
+    void showTouchAreasChanged  (bool showTouchAreas);
+    void showAdvancedUIChanged  (bool showAdvancedUI);
+
+protected slots:
+    void _activeVehicleChanged  (Vehicle* activeVehicle);
+    void _dynamicCamerasChanged ();
+    void _currentCameraChanged  ();
+    void _autoStreamChanged     ();
+
+protected:
+    void _resetInstrumentPages  ();
 
 protected:
     bool                _showTouchAreas;
     bool                _showAdvancedUI;
     Vehicle*            _activeVehicle  = nullptr;
-    QGCCameraManager*   _cameraManager  = nullptr;
+    QGCCameraManager*   _dynamicCameras = nullptr;
     QGCCameraControl*   _currentCamera  = nullptr;
-    QVariantList        _toolBarIndicatorList;
 
 private:
     QGCCorePlugin_p*    _p;

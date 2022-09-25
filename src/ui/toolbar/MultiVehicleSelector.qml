@@ -29,7 +29,7 @@ QGCComboBox {
     property bool showIndicator: _multipleVehicles
 
     property var    _activeVehicle:     QGroundControl.multiVehicleManager.activeVehicle
-    property bool   _multipleVehicles:  QGroundControl.multiVehicleManager.vehicles.count > 1
+    property bool   _multipleVehicles:  _activeVehicle ? QGroundControl.multiVehicleManager.vehicles.count > 1 : false
     property var    _vehicleModel:      [ ]
 
     Connections {
@@ -37,8 +37,7 @@ QGCComboBox {
         onCountChanged:  _updateVehicleModel()
     }
 
-    Component.onCompleted:      _updateVehicleModel()
-    on_ActiveVehicleChanged:    _updateVehicleModel()
+    Component.onCompleted: _updateVehicleModel()
 
     function _updateVehicleModel() {
         var newCurrentIndex = -1

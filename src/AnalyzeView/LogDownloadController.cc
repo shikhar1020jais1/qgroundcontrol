@@ -175,7 +175,7 @@ LogDownloadController::_logEntry(UASInterface* uas, uint32_t time_utc, uint32_t 
             if(id < _logEntriesModel.count()) {
                 QGCLogEntry* entry = _logEntriesModel[id];
                 entry->setSize(size);
-                entry->setTime(QDateTime::fromSecsSinceEpoch(time_utc));
+                entry->setTime(QDateTime::fromTime_t(time_utc));
                 entry->setReceived(true);
                 entry->setStatus(tr("Available"));
             } else {
@@ -466,24 +466,19 @@ LogDownloadController::_findMissingData()
 void
 LogDownloadController::_requestLogData(uint16_t id, uint32_t offset, uint32_t count, int retryCount)
 {
-    if (_vehicle) {
-        WeakLinkInterfacePtr weakLink = _vehicle->vehicleLinkManager()->primaryLink();
-        if (!weakLink.expired()) {
-            SharedLinkInterfacePtr sharedLink = weakLink.lock();
-
-            //-- APM "Fix"
-            id += _apmOneBased;
-            qCDebug(LogDownloadLog) << "Request log data (id:" << id << "offset:" << offset << "size:" << count << "retryCount" << retryCount << ")";
-            mavlink_message_t msg;
-            mavlink_msg_log_request_data_pack_chan(
-                        qgcApp()->toolbox()->mavlinkProtocol()->getSystemId(),
-                        qgcApp()->toolbox()->mavlinkProtocol()->getComponentId(),
-                        sharedLink->mavlinkChannel(),
-                        &msg,
-                        _vehicle->id(), _vehicle->defaultComponentId(),
-                        id, offset, count);
-            _vehicle->sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
-        }
+    if(_vehicle) {
+        //-- APM "Fix"
+        id += _apmOneBased;
+        qCDebug(LogDownloadLog) << "Request log data (id:" << id << "offset:" << offset << "size:" << count << "retryCount" << retryCount << ")";
+        mavlink_message_t msg;
+        mavlink_msg_log_request_data_pack_chan(
+                    qgcApp()->toolbox()->mavlinkProtocol()->getSystemId(),
+                    qgcApp()->toolbox()->mavlinkProtocol()->getComponentId(),
+                    _vehicle->priorityLink()->mavlinkChannel(),
+                    &msg,
+                    qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()->id(), qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()->defaultComponentId(),
+                    id, offset, count);
+        _vehicle->sendMessageOnLink(_vehicle->priorityLink(), msg);
     }
 }
 
@@ -503,22 +498,17 @@ LogDownloadController::_requestLogList(uint32_t start, uint32_t end)
     if(_vehicle && _uas) {
         qCDebug(LogDownloadLog) << "Request log entry list (" << start << "through" << end << ")";
         _setListing(true);
-        WeakLinkInterfacePtr weakLink = _vehicle->vehicleLinkManager()->primaryLink();
-        if (!weakLink.expired()) {
-            SharedLinkInterfacePtr sharedLink = weakLink.lock();
-
-            mavlink_message_t msg;
-            mavlink_msg_log_request_list_pack_chan(
-                        qgcApp()->toolbox()->mavlinkProtocol()->getSystemId(),
-                        qgcApp()->toolbox()->mavlinkProtocol()->getComponentId(),
-                        sharedLink->mavlinkChannel(),
-                        &msg,
-                        _vehicle->id(),
-                        _vehicle->defaultComponentId(),
-                        start,
-                        end);
-            _vehicle->sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
-        }
+        mavlink_message_t msg;
+        mavlink_msg_log_request_list_pack_chan(
+                    qgcApp()->toolbox()->mavlinkProtocol()->getSystemId(),
+                    qgcApp()->toolbox()->mavlinkProtocol()->getComponentId(),
+                    _vehicle->priorityLink()->mavlinkChannel(),
+                    &msg,
+                    _vehicle->id(),
+                    _vehicle->defaultComponentId(),
+                    start,
+                    end);
+        _vehicle->sendMessageOnLink(_vehicle->priorityLink(), msg);
         //-- Wait 5 seconds before bitching about not getting anything
         _timer.start(5000);
     }
@@ -656,7 +646,7 @@ LogDownloadController::_setDownloading(bool active)
 {
     if (_downloadingLogs != active) {
         _downloadingLogs = active;
-        _vehicle->vehicleLinkManager()->setCommunicationLostEnabled(!active);
+        _vehicle->setConnectionLostEnabled(!active);
         emit downloadingLogsChanged();
     }
 }
@@ -667,7 +657,7 @@ LogDownloadController::_setListing(bool active)
 {
     if (_requestingLogEntries != active) {
         _requestingLogEntries = active;
-        _vehicle->vehicleLinkManager()->setCommunicationLostEnabled(!active);
+        _vehicle->setConnectionLostEnabled(!active);
         emit requestingListChanged();
     }
 }
@@ -677,19 +667,14 @@ void
 LogDownloadController::eraseAll(void)
 {
     if(_vehicle && _uas) {
-        WeakLinkInterfacePtr weakLink = _vehicle->vehicleLinkManager()->primaryLink();
-        if (!weakLink.expired()) {
-            SharedLinkInterfacePtr sharedLink = weakLink.lock();
-
-            mavlink_message_t msg;
-            mavlink_msg_log_erase_pack_chan(
-                        qgcApp()->toolbox()->mavlinkProtocol()->getSystemId(),
-                        qgcApp()->toolbox()->mavlinkProtocol()->getComponentId(),
-                        sharedLink->mavlinkChannel(),
-                        &msg,
-                        qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()->id(), qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()->defaultComponentId());
-            _vehicle->sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
-        }
+        mavlink_message_t msg;
+        mavlink_msg_log_erase_pack_chan(
+                    qgcApp()->toolbox()->mavlinkProtocol()->getSystemId(),
+                    qgcApp()->toolbox()->mavlinkProtocol()->getComponentId(),
+                    _vehicle->priorityLink()->mavlinkChannel(),
+                    &msg,
+                    qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()->id(), qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()->defaultComponentId());
+        _vehicle->sendMessageOnLink(_vehicle->priorityLink(), msg);
         refresh();
     }
 }

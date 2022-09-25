@@ -103,7 +103,7 @@ SetupPage {
                         Layout.fillWidth:   true
                         font.pointSize:     ScreenTools.smallFontPointSize
                         wrapMode:           Text.WordWrap
-                        text:               qsTr("Address in hex. Default is E7E7E7E7E7.")
+                        text:               "Address in hex. Default is E7E7E7E7E7."
                     }
 
 
@@ -123,7 +123,7 @@ SetupPage {
                     }
 
                     QGCButton {
-                        text:                           qsTr("Restore Defaults")
+                        text:                           "Restore Defaults"
                         width:                          textEditWidth
                         onClicked: {
                             controller.resetDefaults()

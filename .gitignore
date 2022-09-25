@@ -1,7 +1,3 @@
-.idea/
-.vscode/
-cmake-build-*/
-out/
 libs/lib/Frameworks/GStreamer.framework
 *_qmlcache.qrc
 *.swp
