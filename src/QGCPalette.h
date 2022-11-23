@@ -112,6 +112,8 @@ public:
     Q_PROPERTY(bool         colorGroupEnabled   READ colorGroupEnabled  WRITE setColorGroupEnabled  NOTIFY paletteChanged)
     Q_PROPERTY(QStringList  colors              READ colors             CONSTANT)
 
+    DEFINE_QGC_COLOR(card,                          setCard)    // vyorius
+
     DEFINE_QGC_COLOR(window,                        setWindow)
     DEFINE_QGC_COLOR(windowShadeLight,              setWindowShadeLight)
     DEFINE_QGC_COLOR(windowShade,                   setWindowShade)
@@ -139,6 +141,7 @@ public:
     DEFINE_QGC_COLOR(colorOrange,                   setColorOrange)
     DEFINE_QGC_COLOR(colorRed,                      setColorRed)
     DEFINE_QGC_COLOR(colorGrey,                     setColorGrey)
+    DEFINE_QGC_COLOR(colorDarkGrey,                     setColorDarkGrey)
     DEFINE_QGC_COLOR(colorBlue,                     setColorBlue)
     DEFINE_QGC_COLOR(alertBackground,               setAlertBackground)
     DEFINE_QGC_COLOR(alertBorder,                   setAlertBorder)
@@ -152,6 +155,9 @@ public:
     DEFINE_QGC_COLOR(toolbarBackground,             setToolbarBackground)
     DEFINE_QGC_COLOR(toolStripFGColor,              setToolStripFGColor)
     DEFINE_QGC_COLOR(toolStripHoverColor,           setToolStripHoverColor)
+    DEFINE_QGC_COLOR(vyoriusRed,                    setVyoriusRed)
+    DEFINE_QGC_COLOR(vyoriusYellow,                 setVyoriusYellow)
+    DEFINE_QGC_COLOR(vyoriusGreen,                  setVyoriusGreen)
 
      QGCPalette(QObject* parent = nullptr);
     ~QGCPalette();

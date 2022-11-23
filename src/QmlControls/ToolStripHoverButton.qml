@@ -93,6 +93,7 @@ Button {
         color:          (control.checked || control.pressed) ?
                             qgcPal.buttonHighlight :
                             (control.hovered ? qgcPal.toolStripHoverColor : qgcPal.toolbarBackground)
+        opacity:        (control.checked || control.pressed) ? 1 : (control.hovered ? 1 : 0 )  // vyorius
         anchors.fill:   parent
     }
 }

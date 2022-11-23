@@ -112,7 +112,7 @@ Item {
     */
     Connections {
         target: QGroundControl.settingsManager.appSettings.appFontPointSize
-        function onValueChanged() {
+        function onValueChanged(){
             _setBasePointSize(QGroundControl.settingsManager.appSettings.appFontPointSize.value)
         }
     }
@@ -150,8 +150,11 @@ Item {
             // If using physical sizing takes up too much of the vertical real estate fall back to font based sizing
             minTouchPixels      = defaultFontPixelHeight * 3
         }
-        toolbarHeight           = isMobile ? minTouchPixels : defaultFontPixelHeight * 3
+
+        toolbarHeight           = isMobile ? minTouchPixels : defaultFontPixelHeight * 3.8
         toolbarHeight           = toolbarHeight * QGroundControl.corePlugin.options.toolbarHeightMultiplier
+        if(ScreenToolsController.isAndroid && toolbarHeight>130) toolbarHeight = 130
+
     }
 
     Text {
@@ -181,7 +184,7 @@ Item {
                     platformFontPointSize = 11;
                 // Other Android
                 } else {
-                    platformFontPointSize = 14;
+                    platformFontPointSize = 8;
                 }
             } else {
                 platformFontPointSize = _defaultFont.font.pointSize;

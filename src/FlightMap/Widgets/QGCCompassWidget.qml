@@ -43,6 +43,8 @@ Item {
 
     property bool usedByMultipleVehicleList:  false
 
+    property int _theme: qgcPal.globalTheme
+
     function isCOGAngleOK(){
         if(_groundSpeed < 0.5){
             return false
@@ -75,7 +77,7 @@ Item {
         radius:         width / 2
         color:          qgcPal.window
         border.color:   qgcPal.text
-        border.width:   1
+        border.width:   0
     }
 
     Item {
@@ -116,14 +118,15 @@ Item {
             }
         }
 
-        Image {
+       Image {
             id:                     homePointer
             width:                  size * 0.1
-            source:                 isHeadingHomeOK()  ? "/qmlimages/Home.svg" : ""
+            source:                 isHeadingHomeOK()  ? (_theme ? "/qmlimages/Home.svg" : "/qmlimages/HomeBlack.svg") : ""
             mipmap:                 true
             fillMode:               Image.PreserveAspectFit
             anchors.centerIn:   	parent
             sourceSize.width:       width
+
 
             transform: Translate {
                 property double _angle: isNoseUpLocked()?-_heading+_headingToHome:_headingToHome
@@ -134,7 +137,7 @@ Item {
 
         Image {
             id:                 pointer
-            width:              size * 0.65
+            width:              size
             source:             vehicle ? vehicle.vehicleImageCompass : ""
             mipmap:             true
             sourceSize.width:   width
@@ -168,20 +171,30 @@ Item {
             anchors.centerIn:   parent
             width:              size * 0.35
             height:             size * 0.2
-            border.color:       qgcPal.text
-            color:              qgcPal.window
-            opacity:            0.65
+            border.color:       "transparent"
+            color:              "transparent"
 
             QGCLabel {
-                text:               _headingString3
-                font.family:        vehicle ? ScreenTools.demiboldFontFamily : ScreenTools.normalFontFamily
-                font.pointSize:     _fontSize < 8 ? 8 : _fontSize;
+                id:                 headingLabel
+                text:               _headingString
+                font.family:        ScreenTools.demiboldFontFamily
+                font.pixelSize:     parent.height < 16 ? 16 : parent.height * 0.6;
+                font.bold:          true
                 color:              qgcPal.text
                 anchors.centerIn:   parent
 
                 property string _headingString: vehicle ? _heading.toFixed(0) : "OFF"
-                property string _headingString2: _headingString.length === 1 ? "0" + _headingString : _headingString
-                property string _headingString3: _headingString2.length === 2 ? "0" + _headingString2 : _headingString2
+            }
+            QGCLabel {
+                text:               "°"
+                font.family:        ScreenTools.demiboldFontFamily
+                font.pixelSize:     parent.height < 8 ? 8 : parent.height * 0.3;
+                font.bold:          true
+                color:              qgcPal.text
+                anchors.left:       headingLabel.right
+                anchors.top:        headingLabel.top
+
+                property string _headingString: vehicle ? _heading.toFixed(0) : "OFF"
             }
         }
     }

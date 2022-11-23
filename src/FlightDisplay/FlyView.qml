@@ -67,6 +67,58 @@ Item {
             flightDisplayViewWidgets.adjustToolInset(newToolInset)
         }
     }
+    Rectangle {
+        id: drawerSpace
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+       //edited 27 width
+        width: (ScreenTools.defaultFontPixelWidth * 27)
+               * 0.975
+        color: qgcPal.window
+        visible: true
+        border.color: "#d6d4d4"                                     //ADDED FOR CARD EFFECT
+        border.width: 1.5
+        radius: 5
+        state: mainWindow.oddclickcheck() ? "" : "withdrawn"
+        states: [ State {
+                name: ""
+                PropertyChanges {
+                    target: drawerSpace
+                    width: ScreenTools.defaultFontPixelWidth * 28 //* 0.975
+                }
+            },
+            State {
+                name: "withdrawn"
+                PropertyChanges {
+                    target: drawerSpace
+                    width: 0
+                }
+            }]
+        transitions: [
+            Transition {
+                from: ""
+                to: "withdrawn"
+
+                NumberAnimation {
+                    target: drawerSpace
+                    property: "width"
+                    duration: 200
+                    easing.type: Easing.InOutQuad
+                }
+            },
+            Transition {
+                from: "withdrawn"
+                to: ""
+                NumberAnimation {
+                    target: drawerSpace
+                    property: "width"
+                    duration: 200
+                    easing.type: Easing.InOutQuad
+                }
+            }
+        ]
+    }
 
     QGCToolInsets {
         id:                     _toolInsets
@@ -78,11 +130,12 @@ Item {
         id:                     widgetLayer
         anchors.top:            parent.top
         anchors.bottom:         parent.bottom
-        anchors.left:           parent.left
-        anchors.right:          guidedValueSlider.visible ? guidedValueSlider.left : parent.right
+        anchors.left:           drawerSpace.right //parent.left
+        anchors.right:          guidedAltSlider.visible ? guidedAltSlider.left : parent.right
         z:                      _fullItemZorder + 1
         parentToolInsets:       _toolInsets
         mapControl:             _mapControl
+        _videopipmargin:        _pipOverlay.width
         visible:                !QGroundControl.videoManager.fullScreen
     }
 
@@ -121,9 +174,9 @@ Item {
         guidedController:           _guidedController
     }
 
-    //-- Guided value slider (e.g. altitude)
-    GuidedValueSlider {
-        id:                 guidedValueSlider
+    //-- Altitude slider
+    GuidedAltitudeSlider {
+        id:                 guidedAltSlider
         anchors.margins:    _toolsMargin
         anchors.right:      parent.right
         anchors.top:        parent.top
@@ -131,7 +184,7 @@ Item {
         z:                  QGroundControl.zOrderTopMost
         radius:             ScreenTools.defaultFontPixelWidth / 2
         width:              ScreenTools.defaultFontPixelWidth * 10
-        color:              qgcPal.window
+        color:              "transparent"
         visible:            false
     }
 

@@ -40,8 +40,8 @@ Button {
         anchors.verticalCenter: button.verticalCenter
         QGCColoredImage {
             id:                     _icon
-            height:                 ScreenTools.defaultFontPixelHeight * 2
-            width:                  height
+            height:                 parent.height
+            width:                  logo ? height * 2.8 : height   // vyorius
             sourceSize.height:      parent.height
             fillMode:               Image.PreserveAspectFit
             color:                  logo ? "transparent" : (button.checked ? qgcPal.buttonHighlightText : qgcPal.buttonText)

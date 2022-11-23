@@ -18,6 +18,12 @@ import QGroundControl.Palette       1.0
 T.TabButton {
     id: control
 
+    property real  _bckgOpacity:  1
+    property color   _bckgColor:    qgcPal.button
+    property real  _bdrWidth:     0             //vyorius
+    property color   _bdrColor:     qgcPal.text   //vyorius
+
+
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
                             implicitContentWidth + leftPadding + rightPadding)
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
@@ -33,7 +39,7 @@ T.TabButton {
 
     //icon.width: 24
     icon.height: ScreenTools.defaultFontPixelHeight
-    icon.color: checked ? qgcPal.buttonHighlightText : qgcPal.buttonText
+    icon.color: checked || hovered ? qgcPal.buttonHighlightText : qgcPal.buttonText
 
 
     contentItem: IconLabel {
@@ -44,12 +50,15 @@ T.TabButton {
         icon: control.icon
         text: control.text
         font: control.font
-        color: checked ? qgcPal.buttonHighlightText : qgcPal.buttonText
+        color: checked || hovered ? qgcPal.buttonHighlightText : qgcPal.buttonText
     }
 
     background: Rectangle {
         implicitHeight: 40
-        color: checked ? qgcPal.buttonHighlight : qgcPal.button
+        color: checked || hovered ? qgcPal.buttonHighlight : qgcPal.button
+        radius: 10				// vyorius
+        border.color: _bdrColor //vyorius
+        border.width: _bdrWidth //vyorius
         /*color: Color.blend(control.checked ? control.palette.window : control.palette.dark,
                                              control.palette.mid, control.down ? 0.5 : 0.0)*/
     }

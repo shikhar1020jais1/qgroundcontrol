@@ -15,6 +15,7 @@
  */
 
 import QtQuick 2.3
+import QtGraphicalEffects 1.0
 
 Item {
     id: root
@@ -36,8 +37,8 @@ Item {
             smooth: true
             antialiasing: true
             gradient: Gradient {
-                GradientStop { position: 0.25; color: Qt.hsla(0.6, 1.0, 0.25) }
-                GradientStop { position: 0.5;  color: Qt.hsla(0.6, 0.5, 0.55) }
+                GradientStop { position: 0.45; color: "#3180ff"}
+                GradientStop { position: 0.5;  color: "#8cb8ff"}
             }
         }
         Rectangle {
@@ -51,10 +52,24 @@ Item {
             smooth: true
             antialiasing: true
             gradient: Gradient {
-                GradientStop { position: 0.0;  color: Qt.hsla(0.25,  0.5, 0.45) }
-                GradientStop { position: 0.25; color: Qt.hsla(0.25, 0.75, 0.25) }
+                GradientStop { position: 0.0;  color: "#5dc42f" }
+                GradientStop { position: 0.25; color: "#2a6901" }
             }
         }
+        Image {
+            id:                 laneMarkers
+            source:             "/qmlimages/attitudeLaneMarkers.svg"
+            mipmap:             true
+            fillMode:           Image.PreserveAspectFit
+            anchors.fill:       parent
+            sourceSize.height:  parent.height
+        }
+        OpacityMask {                                       // Doesn't seem to work, for some reason. Leaving it here for future attempts. - Vessesh
+            anchors.fill: laneMarkers
+            source: laneMarkers
+            maskSource: mask
+        }
+
         transform: [
             Translate {
                 y:  angularScale
@@ -64,5 +79,13 @@ Item {
                 origin.y: artificialHorizon.height / 2
                 angle:    -rollAngle
             }]
+    }
+    Rectangle {
+        id:             mask
+        anchors.fill: parent
+        anchors.margins: width * 0.1
+        radius:         width / 2
+        color:          "transparent"
+        visible:        false
     }
 }

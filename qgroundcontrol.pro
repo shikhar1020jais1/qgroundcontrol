@@ -52,7 +52,7 @@ LinuxBuild {
 }
 
 WindowsBuild {
-    RC_ICONS = resources/icons/qgroundcontrol.ico
+    RC_ICONS = resources/icons/VyoriusWindows.ico
     CONFIG += resources_big
 }
 
@@ -60,7 +60,7 @@ WindowsBuild {
 # Branding
 #
 
-QGC_APP_NAME        = "QGroundControl"
+QGC_APP_NAME        = "VyoriusGroundStation"
 QGC_ORG_NAME        = "QGroundControl.org"
 QGC_ORG_DOMAIN      = "org.qgroundcontrol"
 QGC_APP_DESCRIPTION = "Open source ground control app provided by QGroundControl dev team"
@@ -1542,7 +1542,7 @@ LinuxBuild {
     share_qgroundcontrol.files = $${IN_PWD}/resources/
 
     share_icons.path = $${PREFIX}/share/icons/hicolor/128x128/apps/
-    share_icons.files = $${IN_PWD}/resources/icons/qgroundcontrol.png
+    share_icons.files = $${IN_PWD}/resources/icons/VyoriusGroundStation.png
     share_metainfo.path = $${PREFIX}/share/metainfo/
     share_metainfo.files = $${IN_PWD}/deploy/org.mavlink.qgroundcontrol.metainfo.xml
     share_applications.path = $${PREFIX}/share/applications/

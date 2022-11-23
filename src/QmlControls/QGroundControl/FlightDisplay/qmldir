@@ -10,6 +10,7 @@ FlyViewMissionCompleteDialog    1.0 FlyViewMissionCompleteDialog.qml
 FlyViewPreFlightChecklistPopup  1.0 FlyViewPreFlightChecklistPopup.qml
 FlyViewToolStrip                1.0 FlyViewToolStrip.qml
 FlyViewToolStripActionList      1.0 FlyViewToolStripActionList.qml
+GuidedAltitudeSlider            1.0 GuidedAltitudeSlider.qml
 FlyViewVideo                    1.0 FlyViewVideo.qml
 FlyViewWidgetLayer              1.0 FlyViewWidgetLayer.qml
 GuidedActionActionList          1.0 GuidedActionActionList.qml

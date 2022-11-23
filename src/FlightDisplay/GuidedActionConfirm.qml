@@ -26,6 +26,7 @@ Rectangle {
 
     property var    guidedController
     property var    guidedValueSlider
+    property var    altitudeSlider
     property string title                                       // Currently unused
     property alias  message:            messageText.text
     property int    action

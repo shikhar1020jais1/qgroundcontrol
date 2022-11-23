@@ -101,6 +101,18 @@ ApplicationWindow {
     signal vtolTransitionToMRFlightRequest
     signal showPreFlightChecklistIfNeeded
 
+    property bool oddclick: false
+    property bool pipStateOn: false
+    property bool vidSourceDisabled: false
+    property bool flyViewEditingLayer: false
+
+    function drawerclicked() {
+        oddclick = !oddclick;
+    }
+
+    function oddclickcheck() {
+        return oddclick;
+    }
     //-------------------------------------------------------------------------
     //-- Global Scope Functions
 
@@ -330,7 +342,7 @@ ApplicationWindow {
                         height:             toolSelectDialog._toolButtonHeight
                         Layout.fillWidth:   true
                         text:               qsTr("Application Settings")
-                        imageResource:      "/res/QGCLogoFull"
+                        imageResource:      "/res/VyoriusLogo"
                         imageColor:         "transparent"
                         visible:            !QGroundControl.corePlugin.options.combineSettingsAndSetup
                         onClicked: {

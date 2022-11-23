@@ -20,7 +20,9 @@ Rectangle {
     color:      qgcPal.toolbarBackground
     width:      _idealWidth < repeater.contentWidth ? repeater.contentWidth : _idealWidth
     height:     Math.min(maxHeight, toolStripColumn.height + (flickable.anchors.margins * 2))
-    radius:     ScreenTools.defaultFontPixelWidth / 2
+    radius:     width * 0.5
+    opacity:    0.8
+
 
     property alias  model:              repeater.model
     property real   maxHeight           ///< Maximum height for control, determines whether text is hidden to make control shorter
@@ -62,7 +64,11 @@ Rectangle {
             anchors.left:   parent.left
             anchors.right:  parent.right
             spacing:        ScreenTools.defaultFontPixelWidth * 0.25
-
+            Item{
+                //padding
+                height: ScreenTools.defaultFontPixelWidth * 2
+                width: 1
+            }
             QGCLabel {
                 id:                     titleLabel
                 anchors.left:           parent.left
@@ -100,6 +106,11 @@ Rectangle {
                         }
                     }
                 }
+            }
+            Item{
+                //padding
+                height: ScreenTools.defaultFontPixelWidth * 2
+                width: 1
             }
         }
     }

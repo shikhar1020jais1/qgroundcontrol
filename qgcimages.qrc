@@ -170,6 +170,12 @@
         <file alias="Signal40.svg">src/ui/toolbar/Images/Signal40.svg</file>
         <file alias="Signal60.svg">src/ui/toolbar/Images/Signal60.svg</file>
         <file alias="Signal80.svg">src/ui/toolbar/Images/Signal80.svg</file>
+        <file alias="browser">src/Website/browser.svg</file>
+        <file alias="close_icon">src/Website/close_icon.svg</file>
+        <file alias="drag.png">src/Website/drag.png</file>
+        <file alias="scale1.png">src/Website/scale.png</file>
+        <file alias="switch.png">src/Website/switch.png</file>
+        <file alias="connecting">src/Website/loading.gif</file>
         <file alias="StationMode.svg">src/AutoPilotPlugins/Common/Images/StationMode.svg</file>
         <file alias="SubFrameComponentIcon.png">src/AutoPilotPlugins/APM/Images/SubFrameComponentIcon.png</file>
         <file alias="subMenuButtonImage.png">resources/CogWheels.png</file>

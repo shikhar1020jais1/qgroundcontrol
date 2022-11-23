@@ -1,6 +1,7 @@
 import QtQuick                  2.3
 import QtQuick.Controls         2.12
 import QtQuick.Controls.Styles  1.4
+import QtGraphicalEffects       1.0
 
 import QGroundControl.Palette 1.0
 import QGroundControl.ScreenTools 1.0
@@ -18,17 +19,16 @@ Button {
     property real   pointSize:      ScreenTools.defaultFontPointSize    ///< Point size for button text
     property bool   showBorder:     qgcPal.globalTheme === QGCPalette.Light
     property bool   iconLeft:       false
-    property real   backRadius:     0
+    property real   backRadius:     5		// vyorius
     property real   heightFactor:   0.5
     property string iconSource
-
-    property alias wrapMode:            text.wrapMode
-    property alias horizontalAlignment: text.horizontalAlignment
 
     property bool   _showHighlight:     pressed | hovered | checked
 
     property int _horizontalPadding:    ScreenTools.defaultFontPixelWidth
     property int _verticalPadding:      Math.round(ScreenTools.defaultFontPixelHeight * heightFactor)
+    property bool switchable:           false
+    property bool switchedOn:           false
 
     QGCPalette { id: qgcPal; colorGroupEnabled: enabled }
 
@@ -37,11 +37,20 @@ Button {
         implicitWidth:  ScreenTools.implicitButtonWidth
         implicitHeight: ScreenTools.implicitButtonHeight
         radius:         backRadius
-        border.width:   showBorder ? 1 : 0
-        border.color:   qgcPal.buttonText
-        color:          _showHighlight ?
-                            qgcPal.buttonHighlight :
-                            (primary ? qgcPal.primaryButton : qgcPal.button)
+        color:         switchable & switchedOn ?
+                           qgcPal.buttonHighlight :
+                             _showHighlight ?
+                                qgcPal.buttonHighlight :
+                                    (primary ? qgcPal.primaryButton : qgcPal.button)
+
+        layer.enabled: qgcPal.globalTheme === QGCPalette.Light
+        layer.effect: DropShadow {
+            source: backRect
+            color: qgcPal.windowShade
+            transparentBorder: true
+            spread: 0.3
+            samples: 15
+        }
     }
 
     contentItem: Item {

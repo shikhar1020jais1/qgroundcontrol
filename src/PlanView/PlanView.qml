@@ -548,17 +548,56 @@ Item {
                 }
             }
         }
+        Rectangle {
+            id:                     drawerSpace
+            anchors.left:           parent.left
+            anchors.top:            parent.top
+            anchors.bottom:         parent.bottom
+            width:                  (ScreenTools.defaultFontPixelWidth * 28)
+            color:                  "white"//qgcPal.window
+            visible:                true
+            border.color: "#d6d4d4"                                             //ADDED FOR CARD EFFECT
+            border.width: 1.5                                                   //ADDED FOR CARD EFFECT
+            //radius: 5                                                           //ADDED FOR CARD EFFECT
+            state:                  (mainWindow.oddclickcheck()) ? "" : 'withdrawn'
+            states:                 State {
+                name: "withdrawn"
+                PropertyChanges { target: drawerSpace; width: 0.1 }
+            }
+            transitions: [Transition {
+                    from: ""
+                    to: "withdrawn"
+
+                    NumberAnimation {
+                        target: drawerSpace
+                        property: "width"
+                        duration: 200
+                        easing.type: Easing.InOutQuad
+                    }
+                },
+                Transition {
+                    from: "withdrawn"
+                    to: ""
+                    NumberAnimation {
+                        target: drawerSpace
+                        property: "width"
+                        duration: 200
+                        easing.type: Easing.InOutQuad
+                    }
+                }]
+
+        }
 
         //-----------------------------------------------------------
         // Left tool strip
         ToolStrip {
             id:                 toolStrip
             anchors.margins:    _toolsMargin
-            anchors.left:       parent.left
+            anchors.left:       drawerSpace.right
             anchors.top:        parent.top
             z:                  QGroundControl.zOrderWidgets
             maxHeight:          parent.height - toolStrip.y
-            title:              qsTr("Plan")
+            title:              qsTr("")
 
             readonly property int flyButtonIndex:       0
             readonly property int fileButtonIndex:      1
@@ -575,11 +614,6 @@ Item {
             ToolStripActionList {
                 id: toolStripActionList
                 model: [
-                    ToolStripAction {
-                        text:           qsTr("Fly")
-                        iconSource:     "/qmlimages/PaperPlane.svg"
-                        onTriggered:    mainWindow.showFlyView()
-                    },
                     ToolStripAction {
                         text:                   qsTr("File")
                         enabled:                !_planMasterController.syncInProgress

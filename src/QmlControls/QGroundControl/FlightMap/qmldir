@@ -17,6 +17,12 @@ QGCAttitudeHUD              1.0 QGCAttitudeHUD.qml
 QGCAttitudeWidget           1.0 QGCAttitudeWidget.qml
 QGCCompassWidget            1.0 QGCCompassWidget.qml
 QGCPitchIndicator           1.0 QGCPitchIndicator.qml
+ValuePageWidget             1.0 ValuePageWidget.qml
+CameraPageWidget            1.0 CameraPageWidget.qml
+VideoPageWidget             1.0 VideoPageWidget.qml
+HealthPageWidget            1.0 HealthPageWidget.qml
+VibrationPageWidget         1.0 VibrationPageWidget.qml
+EKFStatusPageWidget         1.0 EKFStatusPageWidget.qml
 
 # Map items
 CameraTriggerIndicator      1.0 CameraTriggerIndicator.qml

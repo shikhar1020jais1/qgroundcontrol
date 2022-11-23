@@ -50,15 +50,15 @@ void QGCPalette::_buildMap()
 {
     //                                      Light                 Dark
     //                                      Disabled   Enabled    Disabled   Enabled
-    DECLARE_QGC_COLOR(window,               "#ffffff", "#ffffff", "#222222", "#222222")
+    DECLARE_QGC_COLOR(window,               "#ffffff", "#ffffff", "#18191A", "#18191a") // vyorius
     DECLARE_QGC_COLOR(windowShadeLight,     "#909090", "#828282", "#707070", "#626262")
-    DECLARE_QGC_COLOR(windowShade,          "#d9d9d9", "#d9d9d9", "#333333", "#333333")
+    DECLARE_QGC_COLOR(windowShade,          "#d9d9d9", "#d9d9d9", "#242526", "#333333")	// vyorius
     DECLARE_QGC_COLOR(windowShadeDark,      "#bdbdbd", "#bdbdbd", "#282828", "#282828")
     DECLARE_QGC_COLOR(text,                 "#9d9d9d", "#000000", "#707070", "#ffffff")
     DECLARE_QGC_COLOR(warningText,          "#cc0808", "#cc0808", "#f85761", "#f85761")
-    DECLARE_QGC_COLOR(button,               "#ffffff", "#ffffff", "#707070", "#626270")
+    DECLARE_QGC_COLOR(button,               "#ffffff", "#ffffff", "#282828", "#18191a")	// vyorius
     DECLARE_QGC_COLOR(buttonText,           "#9d9d9d", "#000000", "#A6A6A6", "#ffffff")
-    DECLARE_QGC_COLOR(buttonHighlight,      "#e4e4e4", "#946120", "#3a3a3a", "#fff291")
+    DECLARE_QGC_COLOR(buttonHighlight,      "#e4e4e4", "#f38355", "#3a3a3a", "#f38355")	// vyorius
     DECLARE_QGC_COLOR(buttonHighlightText,  "#2c2c2c", "#ffffff", "#2c2c2c", "#000000")
     DECLARE_QGC_COLOR(primaryButton,        "#585858", "#8cb3be", "#585858", "#8cb3be")
     DECLARE_QGC_COLOR(primaryButtonText,    "#2c2c2c", "#000000", "#2c2c2c", "#000000")
@@ -72,16 +72,18 @@ void QGCPalette::_buildMap()
     DECLARE_QGC_COLOR(colorOrange,          "#b95604", "#b95604", "#de8500", "#de8500")
     DECLARE_QGC_COLOR(colorRed,             "#ed3939", "#ed3939", "#f32836", "#f32836")
     DECLARE_QGC_COLOR(colorGrey,            "#808080", "#808080", "#bfbfbf", "#bfbfbf")
+    DECLARE_QGC_COLOR(colorDarkGrey,    "#474747", "#474747", "#878787", "#878787")
     DECLARE_QGC_COLOR(colorBlue,            "#1a72ff", "#1a72ff", "#536dff", "#536dff")
-    DECLARE_QGC_COLOR(alertBackground,      "#eecc44", "#eecc44", "#eecc44", "#eecc44")
+    DECLARE_QGC_COLOR(alertBackground,      "#2b2b2b", "#2b2b2b", "#2b2b2b", "#2b2b2b")
     DECLARE_QGC_COLOR(alertBorder,          "#808080", "#808080", "#808080", "#808080")
-    DECLARE_QGC_COLOR(alertText,            "#000000", "#000000", "#000000", "#000000")
-    DECLARE_QGC_COLOR(missionItemEditor,    "#585858", "#dbfef8", "#585858", "#585d83")
-    DECLARE_QGC_COLOR(toolStripHoverColor,  "#585858", "#9D9D9D", "#585858", "#585d83")
+    DECLARE_QGC_COLOR(alertText,            "#9d9d9d", "#000000", "#707070", "#ffffff")
+    DECLARE_QGC_COLOR(missionItemEditor,    "#585858", "#f38355", "#585858", "#f38355")
+    DECLARE_QGC_COLOR(toolStripHoverColor,  "#585858", "#ffb49b", "#585858", "#a2573c")	// vyorius
     DECLARE_QGC_COLOR(statusFailedText,     "#9d9d9d", "#000000", "#707070", "#ffffff")
     DECLARE_QGC_COLOR(statusPassedText,     "#9d9d9d", "#000000", "#707070", "#ffffff")
     DECLARE_QGC_COLOR(statusPendingText,    "#9d9d9d", "#000000", "#707070", "#ffffff")
     DECLARE_QGC_COLOR(toolbarBackground,    "#ffffff", "#ffffff", "#222222", "#222222")
+    DECLARE_QGC_COLOR(card,                 "#9d9d9d", "#d6d4d4", "#707070", "#18191a")	// vyorius
 
     // Colors not affecting by theming
     //                                              Disabled    Enabled
@@ -92,9 +94,11 @@ void QGCPalette::_buildMap()
     // Colors not affecting by theming or enable/disable
     DECLARE_QGC_SINGLE_COLOR(mapWidgetBorderLight,          "#ffffff")
     DECLARE_QGC_SINGLE_COLOR(mapWidgetBorderDark,           "#000000")
-    DECLARE_QGC_SINGLE_COLOR(mapMissionTrajectory,          "#be781c")
+    DECLARE_QGC_SINGLE_COLOR(mapMissionTrajectory,          "#ff7400")	// vyorius
     DECLARE_QGC_SINGLE_COLOR(surveyPolygonInterior,         "green")
-    DECLARE_QGC_SINGLE_COLOR(surveyPolygonTerrainCollision, "red")
+    DECLARE_QGC_SINGLE_COLOR(vyoriusRed,                    "#c31818")
+    DECLARE_QGC_SINGLE_COLOR(vyoriusYellow,                 "#f7a81f")
+    DECLARE_QGC_SINGLE_COLOR(vyoriusGreen,                  "#86cc6a")
 }
 
 void QGCPalette::setColorGroupEnabled(bool enabled)
